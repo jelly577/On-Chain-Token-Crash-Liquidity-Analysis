@@ -1,4 +1,4 @@
-# On-Chain Token Crash & Liquidity Analysis
+# OOn-Chain Token Crash & Liquidity Analysis
 
 **Date:** 2026-07-02  
 
@@ -20,6 +20,8 @@ The system should:
 6. reconstruct the crash timeline;
 7. generate an explainable risk report.
 
+
+
 ### MVP input
 
 ```json
@@ -31,6 +33,8 @@ The system should:
   "incident_timestamp": "optional"
 }
 ```
+
+
 
 ### MVP output
 
@@ -48,22 +52,26 @@ output/
 
 ---
 
+
+
 ## 2. Important Concept: There Is No Single “DEX Address”
 
 “Find the DEX address from a token” is not precise enough.
 
 A DEX normally contains several contract types:
 
-| Component | Main purpose |
-|---|---|
-| Factory / Registry | Creates or registers pools |
-| Router | User-facing swap and liquidity entry point |
-| Pair / Pool | Stores pool state and sometimes holds assets |
-| PositionManager | Represents and manages LP positions |
-| Vault | Holds and accounts for assets for multiple pools |
-| PoolManager | Manages multiple logical pools in one singleton contract |
-| Gauge / Locker | Holds LP tokens or LP NFTs for staking or locking |
-| Pool ID | Identifies a logical pool inside a Vault or PoolManager |
+
+| Component          | Main purpose                                             |
+| ------------------ | -------------------------------------------------------- |
+| Factory / Registry | Creates or registers pools                               |
+| Router             | User-facing swap and liquidity entry point               |
+| Pair / Pool        | Stores pool state and sometimes holds assets             |
+| PositionManager    | Represents and manages LP positions                      |
+| Vault              | Holds and accounts for assets for multiple pools         |
+| PoolManager        | Manages multiple logical pools in one singleton contract |
+| Gauge / Locker     | Holds LP tokens or LP NFTs for staking or locking        |
+| Pool ID            | Identifies a logical pool inside a Vault or PoolManager  |
+
 
 The analysis must separate:
 
@@ -83,7 +91,11 @@ A Router should not be treated as the pool or as the long-term holder of liquidi
 
 ---
 
+
+
 ## 3. Recommended Scope
+
+
 
 ### Phase 1: Required MVP
 
@@ -92,6 +104,8 @@ A Router should not be treated as the pool or as the long-term holder of liquidi
 - Uniswap V3;
 - historical incident analysis;
 - Markdown report generation.
+
+
 
 ### Phase 2: Optional extensions
 
@@ -104,6 +118,8 @@ A Router should not be treated as the pool or as the long-term holder of liquidi
 The first version should not attempt to support every protocol.
 
 ---
+
+
 
 ## 4. Protocol Whitelist Strategy
 
@@ -141,6 +157,8 @@ The registry should store:
 - adapter name;
 - enabled status.
 
+
+
 ### Why not whitelist every pool?
 
 Pool-level whitelisting would:
@@ -155,6 +173,8 @@ The correct rule is:
 > Whitelist protocol deployments; discover pools dynamically; verify every discovered pool on-chain.
 
 ---
+
+
 
 ## 5. End-to-End Workflow
 
@@ -173,7 +193,11 @@ flowchart TD
     K --> L[Generate report]
 ```
 
+
+
 ---
+
+
 
 ## 6. Token Validation
 
@@ -184,11 +208,11 @@ Before pool discovery:
 3. read `name`, `symbol`, `decimals`, and `totalSupply`;
 4. detect proxy and implementation addresses when possible;
 5. record unusual behavior:
-   - fee-on-transfer;
-   - rebasing;
-   - minting;
-   - pausing;
-   - blacklisting;
+  - fee-on-transfer;
+  - rebasing;
+  - minting;
+  - pausing;
+  - blacklisting;
 6. never identify a token by symbol alone.
 
 Example record:
@@ -208,9 +232,15 @@ Example record:
 
 ---
 
+
+
 ## 7. Finding DEX Pools and Related Addresses
 
+
+
 ## 7.1 Uniswap V2
+
+
 
 ### Architecture
 
@@ -235,6 +265,8 @@ pool_address = Pair address
 custody_address = Pair address
 position_model = ERC-20 LP token
 ```
+
+
 
 ### Fast discovery
 
@@ -301,12 +333,12 @@ Process:
 LP share = LP balance / LP total supply
 ```
 
-4. determine whether the holder is:
-   - a wallet;
-   - a gauge;
-   - a locker;
-   - a staking contract;
-   - a burn address.
+1. determine whether the holder is:
+  - a wallet;
+  - a gauge;
+  - a locker;
+  - a staking contract;
+  - a burn address.
 
 Store both custody and beneficial ownership when possible:
 
@@ -321,7 +353,11 @@ Store both custody and beneficial ownership when possible:
 
 ---
 
+
+
 ## 7.2 Uniswap V3
+
+
 
 ### Architecture
 
@@ -346,6 +382,8 @@ custody_address = dedicated V3 Pool
 position_manager = NonfungiblePositionManager
 position_model = ERC-721 position NFT
 ```
+
+
 
 ### Fast discovery
 
@@ -399,16 +437,16 @@ NonfungiblePositionManager
 Process:
 
 1. index:
-   - ERC-721 `Transfer`;
-   - `IncreaseLiquidity`;
-   - `DecreaseLiquidity`;
-   - `Collect`;
+  - ERC-721 `Transfer`;
+  - `IncreaseLiquidity`;
+  - `DecreaseLiquidity`;
+  - `Collect`;
 2. obtain each `tokenId`;
 3. call `positions(tokenId)`;
 4. match:
-   - token0;
-   - token1;
-   - fee;
+  - token0;
+  - token1;
+  - fee;
    to a verified Pool;
 5. call `ownerOf(tokenId)`;
 6. check whether the owner is a wallet, gauge, vault, or locker.
@@ -420,6 +458,8 @@ Important:
 The position NFT holder or downstream beneficiary must be resolved.
 
 ---
+
+
 
 ## 7.3 Other Protocol Architectures
 
@@ -480,6 +520,8 @@ Store:
 
 ---
 
+
+
 ## 8. Transfer-Based Reverse Discovery
 
 Scanning the target token's `Transfer` events may reveal contracts that hold or frequently move the token.
@@ -518,6 +560,8 @@ Verified pool or labeled non-pool address
 ```
 
 ---
+
+
 
 ## 9. Normalized Data Model
 
@@ -582,7 +626,11 @@ Normalized event:
 
 ---
 
+
+
 ## 10. Event Reconstruction
+
+
 
 ### Uniswap V2 events
 
@@ -600,6 +648,8 @@ Important:
 - inspect LP-token transfers and transaction calls;
 - the `to` field identifies the recipient of withdrawn assets;
 - compare reserve changes with the event amounts.
+
+
 
 ### Uniswap V3 events
 
@@ -633,6 +683,8 @@ Correlate events by:
 A V3 liquidity decrease and asset collection are separate actions.
 
 ---
+
+
 
 ## 11. Liquidity and Risk Metrics
 
@@ -673,6 +725,8 @@ Every USD value must include:
 
 ---
 
+
+
 ## 12. Crash Timeline and Interpretation
 
 Recommended event order:
@@ -709,21 +763,25 @@ Do not automatically conclude:
 
 ---
 
+
+
 ## 13. Explainable Risk Score
 
 A simple configurable score can combine:
 
-| Component | Example |
-|---|---|
-| Pool concentration | Main pool / total DEX liquidity |
-| LP concentration | Largest LP or entity share |
-| Withdrawal severity | Removed value / pre-event TVL |
-| Temporal proximity | Time from withdrawal to crash |
-| Role sensitivity | Deployer or associated address |
-| Market impact | Depth, slippage, and price change |
-| Combined activity | Withdrawal plus large sell |
+
+| Component            | Example                            |
+| -------------------- | ---------------------------------- |
+| Pool concentration   | Main pool / total DEX liquidity    |
+| LP concentration     | Largest LP or entity share         |
+| Withdrawal severity  | Removed value / pre-event TVL      |
+| Temporal proximity   | Time from withdrawal to crash      |
+| Role sensitivity     | Deployer or associated address     |
+| Market impact        | Depth, slippage, and price change  |
+| Combined activity    | Withdrawal plus large sell         |
 | Migration adjustment | Reduce risk for verified migration |
-| Evidence confidence | Penalize incomplete evidence |
+| Evidence confidence  | Penalize incomplete evidence       |
+
 
 Illustrative formula:
 
@@ -746,21 +804,27 @@ The report must display the feature values rather than only the final number.
 
 ---
 
+
+
 ## 14. Real Mainnet Example: USDC/WETH
 
 This example validates the discovery method using real Ethereum contracts.
 
 ### Inputs
 
-| Item | Value |
-|---|---|
-| Chain | Ethereum mainnet |
-| USDC | `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` |
-| WETH | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
-| V2 Factory | `0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f` |
-| V2 Router02 | `0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D` |
-| V3 Factory | `0x1F98431c8aD98523631AE4a59f267346ea31F984` |
+
+| Item               | Value                                        |
+| ------------------ | -------------------------------------------- |
+| Chain              | Ethereum mainnet                             |
+| USDC               | `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` |
+| WETH               | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
+| V2 Factory         | `0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f` |
+| V2 Router02        | `0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D` |
+| V3 Factory         | `0x1F98431c8aD98523631AE4a59f267346ea31F984` |
 | V3 PositionManager | `0xC36442b4a4522E871399CD717aBDD847Ab11FE88` |
+
+
+
 
 ### Step 1: Find the V2 Pair
 
@@ -800,7 +864,11 @@ custody_address = Pair
 LP representation = ERC-20 Pair token
 ```
 
+
+
 ### Step 2: Find V3 Pools
+
+
 
 #### 0.05% pool
 
@@ -819,6 +887,8 @@ Expected:
 ```text
 0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640
 ```
+
+
 
 #### 0.30% pool
 
@@ -844,6 +914,8 @@ This proves that one pair can map to:
 - multiple V3 Pools;
 - different position representations.
 
+
+
 ### Step 3: Verify the V3 0.05% Pool
 
 ```bash
@@ -867,6 +939,8 @@ Pair = USDC/WETH
 Fee = 500
 Factory.getPool(USDC, WETH, 500) = Pool
 ```
+
+
 
 ### Step 4: Find V3 LP owners
 
@@ -893,6 +967,8 @@ Then check whether the returned owner is:
 - a vault;
 - a locker.
 
+
+
 ### Applying the example to a crash token
 
 Replace USDC with the target token and:
@@ -910,7 +986,11 @@ Replace USDC with the target token and:
 
 ---
 
+
+
 ## 15. Task Breakdown
+
+
 
 ## Task 1 — Protocol registry
 
@@ -926,6 +1006,8 @@ Implement:
 **Acceptance:** Unknown Factories are never marked as trusted.
 
 ---
+
+
 
 ## Task 2 — Token profiler
 
@@ -943,6 +1025,8 @@ Implement:
 
 ---
 
+
+
 ## Task 3 — Pool discovery
 
 Implement:
@@ -957,6 +1041,8 @@ Implement:
 **Acceptance:** The real pools in Section 14 are found automatically.
 
 ---
+
+
 
 ## Task 4 — Pool verification and custody resolution
 
@@ -975,6 +1061,8 @@ Implement:
 
 ---
 
+
+
 ## Task 5 — Event indexer
 
 Implement:
@@ -991,6 +1079,8 @@ Implement:
 
 ---
 
+
+
 ## Task 6 — Position and address analysis
 
 Implement:
@@ -1006,6 +1096,8 @@ Implement:
 **Acceptance:** PositionManager is not mislabeled as the economic LP.
 
 ---
+
+
 
 ## Task 7 — Liquidity and crash analytics
 
@@ -1026,6 +1118,8 @@ Implement:
 
 ---
 
+
+
 ## Task 8 — Report generation
 
 Generate:
@@ -1044,7 +1138,11 @@ Generate:
 
 ---
 
+
+
 ## 16. Recommended Milestones
+
+
 
 ### Milestone 1: Pool discovery
 
@@ -1052,11 +1150,15 @@ Generate:
 - V2 and V3 adapters complete;
 - USDC/WETH example reproduced.
 
+
+
 ### Milestone 2: Event reconstruction
 
 - V2 and V3 events normalized;
 - LP owners or position holders resolved;
 - historical state reads supported.
+
+
 
 ### Milestone 3: Incident report
 
@@ -1066,6 +1168,8 @@ Generate:
 - explainable score;
 - reproducible report.
 
+
+
 ### Milestone 4: Extensions
 
 - Balancer V2;
@@ -1074,6 +1178,8 @@ Generate:
 - real-time alerts.
 
 ---
+
+
 
 ## 17. Minimum Acceptance Checklist
 
@@ -1094,3 +1200,4 @@ Generate:
 - [ ] One real incident can be reproduced end-to-end.
 
 ---
+

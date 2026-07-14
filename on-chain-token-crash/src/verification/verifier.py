@@ -1,6 +1,7 @@
 """Pool verification — confirms discovered pools against their Factory."""
 from __future__ import annotations
 
+import time as _time
 from typing import Optional
 
 from web3 import Web3
@@ -16,6 +17,7 @@ from ..registry.loader import (
 )
 
 MIN_CONFIDENCE = 0.3
+_RPC_DELAY = 0.0
 
 
 def verify_pool(
@@ -25,14 +27,12 @@ def verify_pool(
     from_block: int = 0,
     to_block: int = 0,
 ) -> VerifiedPool:
-    """Run verification checks on a candidate pool and update its confidence."""
     pool = VerifiedPool(**{k: v for k, v in pool.__dict__.items()})
     registry = load_registry()
 
     checks_passed = 0
     checks_total = 0
 
-    # 0. Factory must be whitelisted
     checks_total += 1
     if is_trusted_factory(registry, pool.factory_address):
         checks_passed += 1
@@ -41,10 +41,9 @@ def verify_pool(
         pool.verification_confidence = 0.0
         return pool
 
-    # Resolve custody and position model from architecture
     pool = _resolve_custody(w3, pool, registry)
 
-    # 1. Contract has bytecode
+    _time.sleep(_RPC_DELAY)
     checks_total += 1
     if has_bytecode(w3, pool.pool_address):
         checks_passed += 1
@@ -60,7 +59,7 @@ def verify_pool(
         pool.verification_confidence = round(checks_passed / max(checks_total, 1), 4)
         return pool
 
-    # 2. Verify factory on-chain
+    _time.sleep(_RPC_DELAY)
     checks_total += 1
     try:
         onchain_factory = contract.functions.factory().call()
@@ -69,7 +68,7 @@ def verify_pool(
     except Exception:
         pass
 
-    # 3. Verify token pair
+    _time.sleep(_RPC_DELAY)
     checks_total += 1
     try:
         t0 = Web3.to_checksum_address(contract.functions.token0().call())
@@ -84,14 +83,12 @@ def verify_pool(
     except Exception:
         pass
 
-    # 4. Target token must be in the pair
     if target_token:
         checks_total += 1
         target = Web3.to_checksum_address(target_token)
         if target in (pool.token0, pool.token1):
             checks_passed += 1
 
-    # Version-specific checks
     if pool.version == "v2":
         checks_passed, checks_total = _verify_v2(
             w3, pool, contract, checks_passed, checks_total
@@ -101,10 +98,11 @@ def verify_pool(
             w3, pool, contract, registry, checks_passed, checks_total
         )
 
-    # Event provenance
-    checks_total += 1
-    if _verify_event_provenance(w3, pool, from_block, to_block):
-        checks_passed += 1
+    # Event provenance — skip for large ranges (Free tier constraint)
+    if to_block - from_block + 1 <= 1000:
+        checks_total += 1
+        if _verify_event_provenance(w3, pool, from_block, to_block):
+            checks_passed += 1
 
     confidence = checks_passed / max(checks_total, 1)
     pool.verified = confidence >= MIN_CONFIDENCE
@@ -119,23 +117,20 @@ def verify_pools(
     from_block: int = 0,
     to_block: int = 0,
 ) -> list[VerifiedPool]:
-    """Verify a list of candidate pools."""
-    return [
-        verify_pool(w3, pool, target_token, from_block, to_block)
-        for pool in pools
-    ]
+    results = []
+    for i, pool in enumerate(pools):
+        result = verify_pool(w3, pool, target_token, from_block, to_block)
+        results.append(result)
+        # Extra delay every 3 pools for rate limiting
+        # HTTP layer handles rate limiting
+    return results
 
 
-def _resolve_custody(
-    w3: Web3, pool: VerifiedPool, registry: dict
-) -> VerifiedPool:
-    """Set custody and position-manager fields based on architecture."""
+def _resolve_custody(w3: Web3, pool: VerifiedPool, registry: dict) -> VerifiedPool:
     deployment = get_protocol_by_factory(registry, pool.factory_address)
     if deployment is None:
         return pool
-
     pool.architecture = deployment.architecture
-
     if pool.version == "v2":
         pool.custody_address = pool.pool_address
         if deployment.router and not pool.router_addresses:
@@ -146,18 +141,14 @@ def _resolve_custody(
             pool.position_manager_address = deployment.position_manager
         if deployment.router and not pool.router_addresses:
             pool.router_addresses = [deployment.router]
-
     return pool
 
 
 def _verify_v2(
-    w3: Web3,
-    pool: VerifiedPool,
-    contract,
-    checks_passed: int,
-    checks_total: int,
+    w3: Web3, pool: VerifiedPool, contract,
+    checks_passed: int, checks_total: int,
 ) -> tuple[int, int]:
-    """V2-specific verification: getPair cross-check and reserves."""
+    _time.sleep(_RPC_DELAY)
     checks_total += 1
     try:
         factory = get_contract(w3, pool.factory_address, "uniswap_v2_factory")
@@ -170,6 +161,7 @@ def _verify_v2(
     except Exception:
         pass
 
+    _time.sleep(_RPC_DELAY)
     checks_total += 1
     try:
         contract.functions.getReserves().call()
@@ -181,17 +173,13 @@ def _verify_v2(
 
 
 def _verify_v3(
-    w3: Web3,
-    pool: VerifiedPool,
-    contract,
-    registry: dict,
-    checks_passed: int,
-    checks_total: int,
+    w3: Web3, pool: VerifiedPool, contract, registry: dict,
+    checks_passed: int, checks_total: int,
 ) -> tuple[int, int]:
-    """V3-specific verification: fee, tickSpacing, getPool, slot0, liquidity, PM."""
     if pool.fee is not None:
         checks_total += 1
         try:
+            _time.sleep(_RPC_DELAY)
             onchain_fee = contract.functions.fee().call()
             if onchain_fee == pool.fee:
                 checks_passed += 1
@@ -202,12 +190,14 @@ def _verify_v3(
         if expected_spacing is not None:
             checks_total += 1
             try:
+                _time.sleep(_RPC_DELAY)
                 onchain_spacing = contract.functions.tickSpacing().call()
                 if onchain_spacing == expected_spacing:
                     checks_passed += 1
             except Exception:
                 pass
 
+        _time.sleep(_RPC_DELAY)
         checks_total += 1
         try:
             factory = get_contract(w3, pool.factory_address, "uniswap_v3_factory")
@@ -221,6 +211,7 @@ def _verify_v3(
         except Exception:
             pass
 
+    _time.sleep(_RPC_DELAY)
     checks_total += 1
     try:
         contract.functions.slot0().call()
@@ -228,6 +219,7 @@ def _verify_v3(
     except Exception:
         pass
 
+    _time.sleep(_RPC_DELAY)
     checks_total += 1
     try:
         contract.functions.liquidity().call()
@@ -236,6 +228,7 @@ def _verify_v3(
         pass
 
     if pool.position_manager_address:
+        _time.sleep(_RPC_DELAY)
         checks_total += 1
         if has_bytecode(w3, pool.position_manager_address):
             checks_passed += 1
@@ -250,13 +243,7 @@ def _expected_tick_spacing(registry: dict, fee: int) -> Optional[int]:
     return None
 
 
-def _verify_event_provenance(
-    w3: Web3,
-    pool: VerifiedPool,
-    from_block: int,
-    to_block: int,
-) -> bool:
-    """Confirm the pool was created via an official Factory event."""
+def _verify_event_provenance(w3: Web3, pool: VerifiedPool, from_block: int, to_block: int) -> bool:
     try:
         if pool.version == "v2":
             factory = get_contract(w3, pool.factory_address, "uniswap_v2_factory")

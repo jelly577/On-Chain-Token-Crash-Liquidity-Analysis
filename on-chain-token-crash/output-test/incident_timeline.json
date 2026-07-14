@@ -1,0 +1,29 @@
+{
+  "total_events": 0,
+  "total_swaps": 0,
+  "total_liquidity_events": 0,
+  "total_token_transfers": 0,
+  "block_range": {
+    "first_block": 0,
+    "first_timestamp": 0,
+    "last_block": 0,
+    "last_timestamp": 0
+  },
+  "incident_block": 0,
+  "num_pre_incident_events": 0,
+  "num_post_incident_events": 0,
+  "large_swaps": 0,
+  "large_liquidity_removals": 0,
+  "liquidity_migration": {
+    "migration_detected": false,
+    "migration_candidates": [],
+    "num_pools": 15
+  },
+  "alternative_causes": {
+    "large_token_distributions": false,
+    "minting_detected": false,
+    "concentrated_dumping": false,
+    "notes": []
+  },
+  "sorted_events": []
+}

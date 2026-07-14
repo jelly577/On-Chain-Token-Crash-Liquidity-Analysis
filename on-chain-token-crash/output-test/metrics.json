@@ -1,0 +1,22 @@
+{
+  "pool_concentration": {
+    "total_tvl": 0,
+    "main_pool": "",
+    "main_pool_tvl": 0,
+    "main_pool_share": 0,
+    "num_active_pools": 0
+  },
+  "lp_concentration": {
+    "top_lp_share": 0,
+    "top_n_share": 0,
+    "num_lps": 0
+  },
+  "withdrawal_severity": {
+    "num_withdrawals": 0,
+    "total_removed_token0": 0,
+    "pre_event_tvl": 0,
+    "withdrawal_severity": 0,
+    "withdrawal_events": []
+  },
+  "tvl_timeline_length": 0
+}

@@ -4,13 +4,18 @@ from __future__ import annotations
 from typing import Optional
 
 from web3 import Web3
-from web3.types import EventData
 
 from ..client import get_contract
 from ..models import ProtocolDeployment, VerifiedPool
 from ..registry.loader import get_chain_id, get_v3_fees, load_registry
 from .base import PoolDiscoveryAdapter
-from .log_utils import dedupe_pools, get_logs_chunked
+from .log_utils import (
+    POOL_CREATED_TOPIC,
+    address_topic,
+    dedupe_pools,
+    get_logs_with_topics,
+)
+import time as _time
 
 
 class UniswapV3Adapter(PoolDiscoveryAdapter):
@@ -49,46 +54,17 @@ class UniswapV3Adapter(PoolDiscoveryAdapter):
                             pool_addr_checksum, fee, chain_id
                         ))
 
-        # --- Exhaustive discovery via PoolCreated events (chunked) ---
-        event = factory.events.PoolCreated
+        # --- Exhaustive discovery via PoolCreated events (skip for large ranges) ---
+        factory_addr = self.deployment.factory
         search_from = max(from_block, self.deployment.deployment_block)
+        total_blocks = to_block - search_from + 1
 
-        for token_role in ("token0", "token1"):
-            arg_filter = {"token0": token} if token_role == "token0" else {"token1": token}
-            entries = get_logs_chunked(
-                event,
-                from_block=search_from,
-                to_block=to_block,
-                argument_filters=arg_filter,
+        if total_blocks <= 1000:
+            _try_exhaustive_v3(
+                self.w3, factory_addr, token, chain_id,
+                search_from, to_block, seen, pools,
+                self.deployment,
             )
-
-            for entry in entries:
-                evt: EventData = entry
-                args = evt["args"]
-                pool_addr = Web3.to_checksum_address(args["pool"])
-                if pool_addr in seen:
-                    continue
-                seen.add(pool_addr)
-                pools.append(VerifiedPool(
-                    chain_id=chain_id,
-                    protocol="uniswap",
-                    version="v3",
-                    architecture="concentrated_pool",
-                    factory_address=self.deployment.factory,
-                    router_addresses=(
-                        [self.deployment.router] if self.deployment.router else []
-                    ),
-                    pool_address=pool_addr,
-                    custody_address=pool_addr,
-                    position_manager_address=self.deployment.position_manager,
-                    token0=Web3.to_checksum_address(args["token0"]),
-                    token1=Web3.to_checksum_address(args["token1"]),
-                    fee=args["fee"],
-                    creation_block=entry["blockNumber"],
-                    creation_transaction=entry["transactionHash"].hex(),
-                    verified=False,
-                    verification_confidence=0.0,
-                ))
 
         return dedupe_pools(pools)
 
@@ -100,37 +76,93 @@ class UniswapV3Adapter(PoolDiscoveryAdapter):
             token0 = Web3.to_checksum_address(pool.functions.token0().call())
             token1 = Web3.to_checksum_address(pool.functions.token1().call())
             return VerifiedPool(
-                chain_id=chain_id,
-                protocol="uniswap",
-                version="v3",
+                chain_id=chain_id, protocol="uniswap", version="v3",
                 architecture="concentrated_pool",
                 factory_address=self.deployment.factory,
                 router_addresses=(
                     [self.deployment.router] if self.deployment.router else []
                 ),
-                pool_address=pool_addr,
-                custody_address=pool_addr,
+                pool_address=pool_addr, custody_address=pool_addr,
                 position_manager_address=self.deployment.position_manager,
-                token0=token0,
-                token1=token1,
-                fee=fee,
-                verified=False,
-                verification_confidence=0.0,
+                token0=token0, token1=token1, fee=fee,
+                verified=False, verification_confidence=0.0,
             )
         except Exception:
             return VerifiedPool(
-                chain_id=chain_id,
-                protocol="uniswap",
-                version="v3",
+                chain_id=chain_id, protocol="uniswap", version="v3",
                 architecture="concentrated_pool",
                 factory_address=self.deployment.factory,
                 router_addresses=(
                     [self.deployment.router] if self.deployment.router else []
                 ),
-                pool_address=pool_addr,
-                custody_address=pool_addr,
+                pool_address=pool_addr, custody_address=pool_addr,
                 position_manager_address=self.deployment.position_manager,
-                fee=fee,
-                verified=False,
-                verification_confidence=0.0,
+                fee=fee, verified=False, verification_confidence=0.0,
             )
+
+
+def _try_exhaustive_v3(
+    w3: Web3, factory_addr: str, token: str, chain_id: int,
+    search_from: int, to_block: int, seen: set, pools: list,
+    deployment: ProtocolDeployment,
+) -> None:
+    """Try exhaustive V3 discovery via PoolCreated events (graceful failure)."""
+    try:
+        factory_addr_checksum = Web3.to_checksum_address(factory_addr)
+
+        # token0 == target
+        raw_logs = get_logs_with_topics(
+            w3, factory_addr_checksum,
+            [POOL_CREATED_TOPIC, address_topic(token), None, None],
+            search_from, to_block,
+        )
+        for raw in raw_logs:
+            pool_addr = Web3.to_checksum_address("0x" + raw["data"][2+64:2+128].zfill(64)[-40:])
+            if pool_addr in seen:
+                continue
+            seen.add(pool_addr)
+            token0 = Web3.to_checksum_address("0x" + raw["topics"][1].hex()[-40:])
+            token1 = Web3.to_checksum_address("0x" + raw["topics"][2].hex()[-40:])
+            fee = int(raw["topics"][3].hex(), 16) if len(raw["topics"]) > 3 and raw["topics"][3] else 0
+            pools.append(VerifiedPool(
+                chain_id=chain_id, protocol="uniswap", version="v3",
+                architecture="concentrated_pool",
+                factory_address=deployment.factory,
+                router_addresses=[deployment.router] if deployment.router else [],
+                pool_address=pool_addr, custody_address=pool_addr,
+                position_manager_address=deployment.position_manager,
+                token0=token0, token1=token1, fee=fee,
+                creation_block=int(raw["blockNumber"], 16) if isinstance(raw["blockNumber"], str) else raw["blockNumber"],
+                creation_transaction=raw["transactionHash"].hex(),
+                verified=False, verification_confidence=0.0,
+            ))
+
+        # token1 == target
+        raw_logs = get_logs_with_topics(
+            w3, factory_addr_checksum,
+            [POOL_CREATED_TOPIC, None, address_topic(token), None],
+            search_from, to_block,
+        )
+        for raw in raw_logs:
+            pool_addr = Web3.to_checksum_address("0x" + raw["data"][2+64:2+128].zfill(64)[-40:])
+            if pool_addr in seen:
+                continue
+            seen.add(pool_addr)
+            token0 = Web3.to_checksum_address("0x" + raw["topics"][1].hex()[-40:])
+            token1 = Web3.to_checksum_address("0x" + raw["topics"][2].hex()[-40:])
+            fee = int(raw["topics"][3].hex(), 16) if len(raw["topics"]) > 3 and raw["topics"][3] else 0
+            pools.append(VerifiedPool(
+                chain_id=chain_id, protocol="uniswap", version="v3",
+                architecture="concentrated_pool",
+                factory_address=deployment.factory,
+                router_addresses=[deployment.router] if deployment.router else [],
+                pool_address=pool_addr, custody_address=pool_addr,
+                position_manager_address=deployment.position_manager,
+                token0=token0, token1=token1, fee=fee,
+                creation_block=int(raw["blockNumber"], 16) if isinstance(raw["blockNumber"], str) else raw["blockNumber"],
+                creation_transaction=raw["transactionHash"].hex(),
+                verified=False, verification_confidence=0.0,
+            ))
+
+    except Exception:
+        pass
