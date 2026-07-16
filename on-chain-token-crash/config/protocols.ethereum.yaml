@@ -34,6 +34,17 @@ protocols:
     deployment_block: 12369621
     enabled: true
 
+  - protocol: uniswap
+    version: v4
+    architecture: singleton
+    factory: "0x0000000000000000000000000000000000000044"
+    router: "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    position_manager: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88"
+    adapter: UniswapV4Adapter
+    deployment_block: 20500000
+    enabled: true
+    notes: "V4 singleton architecture; pool IDs are used instead of pool addresses"
+
 v3_fee_tiers:
   - fee: 100
     tick_spacing: 1
