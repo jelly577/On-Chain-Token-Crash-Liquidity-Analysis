@@ -16,8 +16,19 @@ def calculate_temporal_proximity(
 
     Returns (score, explanation).
     """
-    if not withdrawal_events or incident_block == 0:
-        return 0.0, "No incident block or no withdrawals to evaluate."
+    if not withdrawal_events:
+        return 0.0, "No withdrawals to evaluate."
+
+    # Without a crash block, score mild risk from withdrawal intensity in the window
+    if incident_block == 0:
+        n = len(withdrawal_events)
+        if n >= 10:
+            return 0.45, "No incident block — {} liquidity removals in window.".format(n)
+        if n >= 3:
+            return 0.25, "No incident block — {} liquidity removals in window.".format(n)
+        if n >= 1:
+            return 0.1, "No incident block — {} liquidity removal(s) in window.".format(n)
+        return 0.0, "No incident block or withdrawals."
 
     # Find the closest withdrawal before the crash
     closest_distance = float("inf")
@@ -63,7 +74,17 @@ def calculate_role_sensitivity(
     Returns (score, explanation).
     """
     if not deployer:
-        return 0.0, "Deployer unknown — cannot assess role sensitivity."
+        # Without deployer, use label heuristics (e.g. many pool/router tags ≠ high risk alone)
+        suspicious = [
+            l for l in labels
+            if any(
+                k in (l.get("label", "") + l.get("category", "")).lower()
+                for k in ("deployer", "owner", "admin", "rug")
+            )
+        ]
+        if suspicious:
+            return 0.5, "Suspicious role labels present without confirmed deployer."
+        return 0.0, "Deployer unknown — role sensitivity not scored."
 
     # Find deployer-related labels
     deployer_labels = [
@@ -76,7 +97,6 @@ def calculate_role_sensitivity(
     ]
 
     if deployer_labels:
-        # Deployer is directly involved
         return 0.8, "Deployer is directly involved in pool(s)."
 
     if co_lp_labels:
@@ -93,8 +113,13 @@ def calculate_market_impact(
 
     Returns (score, explanation).
     """
-    if not timeline or incident_block == 0:
-        return 0.0, "No timeline data or incident block."
+    if not timeline:
+        return 0.0, "No timeline data."
+
+    # Without an incident block, skip price-swing scoring — reconstructed
+    # reserves often start at 0 and produce meaningless 100% swings.
+    if incident_block == 0:
+        return 0.0, "No incident block — market impact requires a crash reference."
 
     # Get price before and after
     pre_prices = [
@@ -152,19 +177,19 @@ def calculate_risk_score(
         final_score = clamp(raw_score - migration_adjustment, 0, 1) * evidence_confidence
     """
     # Feature 1: Pool concentration (main pool share)
-    pool_conc = pool_concentration.get("main_pool_share", 0)
+    pool_conc = float(pool_concentration.get("main_pool_share", 0) or 0)
     pool_conc_feature = min(pool_conc, 1.0)
     pool_conc_desc = "Main pool holds {:.2%} of total DEX liquidity.".format(pool_conc)
 
-    # Feature 2: LP concentration (top LP share)
-    lp_conc = lp_concentration.get("top_lp_share", 0)
-    lp_conc_feature = min(lp_conc / 100, 1.0)
+    # Feature 2: LP concentration (top LP share is already 0-100)
+    lp_conc = float(lp_concentration.get("top_lp_share", 0) or 0)
+    lp_conc_feature = min(lp_conc / 100.0, 1.0)
     lp_conc_desc = "Largest LP holds {:.2f}% of pool shares.".format(lp_conc)
 
     # Feature 3: Withdrawal severity
-    severity = withdrawal_severity.get("withdrawal_severity", 0)
+    severity = float(withdrawal_severity.get("withdrawal_severity", 0) or 0)
     sev_feature = min(severity, 1.0)
-    sev_desc = "Liquidity removed before crash is {:.2%} of pre-event TVL.".format(severity)
+    sev_desc = "Liquidity removed is {:.2%} of reference TVL.".format(severity)
 
     # Feature 4: Temporal proximity
     prox_score, prox_desc = calculate_temporal_proximity(
@@ -180,10 +205,10 @@ def calculate_risk_score(
     market_score, market_desc = calculate_market_impact(timeline, incident_block)
 
     # Feature 7: Combined activity
-    num_withdrawals = withdrawal_severity.get("num_withdrawals", 0)
+    num_withdrawals = int(withdrawal_severity.get("num_withdrawals", 0) or 0)
     has_large_sells = any(
-        abs(int(e.get("token0_amount", "0"))) > 10 ** 22
-        for e in withdrawal_events
+        abs(int(e.get("token0_amount", "0") or e.get("amount0", "0") or "0")) > 10 ** 22
+        for e in (withdrawal_events or [])
     )
     combined_act = 1.0 if (num_withdrawals > 3 and has_large_sells) else (
         0.5 if (num_withdrawals > 1 or has_large_sells) else 0.0
@@ -211,15 +236,16 @@ def calculate_risk_score(
         migration_adjustment = 0.3
         migration_note = "Liquidity migration detected — reducing risk by 0.30."
 
-    # Evidence confidence
+    # Evidence confidence — structural signals count even without a crash incident
     evidence_count = sum(1 for v in [
         pool_conc > 0,
         lp_conc > 0,
-        sev_feature > 0,
+        sev_feature > 0 or num_withdrawals > 0,
         prox_score > 0,
         market_score > 0,
+        role_score > 0,
     ] if v)
-    evidence_confidence = min(0.5 + (evidence_count * 0.1), 1.0)
+    evidence_confidence = min(0.55 + (evidence_count * 0.09), 1.0)
 
     final_score = max(0, min(raw_score - migration_adjustment, 1.0)) * evidence_confidence
 

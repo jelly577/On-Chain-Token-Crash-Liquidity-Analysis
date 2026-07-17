@@ -1,8 +1,8 @@
 {
-  "total_unique_addresses": 11,
-  "query_timestamp": 1784260386,
-  "query_time_human": "2026-07-17 03:53:06 UTC",
-  "holdings_count": 11,
+  "total_unique_addresses": 3,
+  "query_timestamp": 1784289977,
+  "query_time_human": "2026-07-17 12:06:17 UTC",
+  "holdings_count": 3,
   "pool_count": 2,
   "holdings": [
     {
@@ -11,21 +11,10 @@
       "balance_decimal": 25747210.682544,
       "is_pool": false,
       "pool_label": "",
-      "tx_count": 2,
+      "tx_count": 1,
       "first_seen_block": 19000196,
-      "last_seen_block": 19004798,
-      "query_timestamp": 1784260386
-    },
-    {
-      "address": "0xAC9fbdbE486F8023606b932a747BC476011B5071",
-      "balance_raw": "1458572977924076945671009",
-      "balance_decimal": 1458572.977924,
-      "is_pool": true,
-      "pool_label": "UNISWAP V2",
-      "tx_count": 3,
-      "first_seen_block": 19001337,
-      "last_seen_block": 19008313,
-      "query_timestamp": 1784260386
+      "last_seen_block": 19000196,
+      "query_timestamp": 1784289977
     },
     {
       "address": "0xd91eFec7E42f80156d1D9f660a69847188950747",
@@ -36,62 +25,7 @@
       "tx_count": 2,
       "first_seen_block": 19000170,
       "last_seen_block": 19000196,
-      "query_timestamp": 1784260386
-    },
-    {
-      "address": "0x30e5f7826Ee0cd9Cd1EF0521c9aEBa8d6ADF8993",
-      "balance_raw": "3892385232252696085024",
-      "balance_decimal": 3892.385232,
-      "is_pool": false,
-      "pool_label": "",
-      "tx_count": 1,
-      "first_seen_block": 19001337,
-      "last_seen_block": 19001337,
-      "query_timestamp": 1784260386
-    },
-    {
-      "address": "0x12d8E0407140bCf38f1c041eD5916195fE852E28",
-      "balance_raw": "1025751665033375",
-      "balance_decimal": 0.001026,
-      "is_pool": false,
-      "pool_label": "",
-      "tx_count": 2,
-      "first_seen_block": 19008269,
-      "last_seen_block": 19008313,
-      "query_timestamp": 1784260386
-    },
-    {
-      "address": "0x248a198657Ba1da752828989D0C928c6729e4cF3",
-      "balance_raw": "0",
-      "balance_decimal": 0.0,
-      "is_pool": false,
-      "pool_label": "",
-      "tx_count": 1,
-      "first_seen_block": 19005645,
-      "last_seen_block": 19005645,
-      "query_timestamp": 1784260386
-    },
-    {
-      "address": "0x5572db4D954bb53AAFf732780f3B1A90D37a3671",
-      "balance_raw": "0",
-      "balance_decimal": 0.0,
-      "is_pool": false,
-      "pool_label": "",
-      "tx_count": 2,
-      "first_seen_block": 19003756,
-      "last_seen_block": 19003801,
-      "query_timestamp": 1784260386
-    },
-    {
-      "address": "0x763A0CA93AF05adE98A52dc1E5B936b89bF8b89a",
-      "balance_raw": "0",
-      "balance_decimal": 0.0,
-      "is_pool": false,
-      "pool_label": "",
-      "tx_count": 1,
-      "first_seen_block": 19008269,
-      "last_seen_block": 19008269,
-      "query_timestamp": 1784260386
+      "query_timestamp": 1784289977
     },
     {
       "address": "0x93e463646Ce35f588113dE1Ae60ABC51C1b7761C",
@@ -102,29 +36,7 @@
       "tx_count": 1,
       "first_seen_block": 19000170,
       "last_seen_block": 19000170,
-      "query_timestamp": 1784260386
-    },
-    {
-      "address": "0xF942aE1372A26767434739A381702AbB5f40CA27",
-      "balance_raw": "0",
-      "balance_decimal": 0.0,
-      "is_pool": false,
-      "pool_label": "",
-      "tx_count": 3,
-      "first_seen_block": 19003756,
-      "last_seen_block": 19004798,
-      "query_timestamp": 1784260386
-    },
-    {
-      "address": "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67",
-      "balance_raw": "1",
-      "balance_decimal": 0.0,
-      "is_pool": false,
-      "pool_label": "",
-      "tx_count": 2,
-      "first_seen_block": 19001337,
-      "last_seen_block": 19001337,
-      "query_timestamp": 1784260386
+      "query_timestamp": 1784289977
     }
   ],
   "pool_identification": [
@@ -135,9 +47,9 @@
       "token0": "0xaE6e307c3Fe9E922E5674DBD7F830Ed49c014c6B",
       "token1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
       "fee": null,
-      "balance_raw": "1458572977924076945671009",
-      "balance_decimal": 1458572.977924,
-      "in_holders_list": true
+      "balance_raw": "0",
+      "balance_decimal": 0.0,
+      "in_holders_list": false
     },
     {
       "pool_address": "0xAB26D20964CC0284e190Bc22e67d52b8A88a3084",

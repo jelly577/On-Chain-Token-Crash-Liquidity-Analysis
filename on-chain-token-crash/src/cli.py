@@ -16,7 +16,7 @@ from .registry.loader import load_registry, get_chain_id
 from .verification.verifier import verify_pools
 from .indexer.indexer import index_events
 from .analysis.positions import analyze_positions
-from .analysis.labels import analyze_labels
+from .analysis.labels import analyze_labels, find_deployer
 from .analysis.metrics import calculate_all_metrics
 from .analysis.timeline import analyze_timeline
 from .analysis.risk import compute_risk
@@ -148,15 +148,15 @@ def analyze(
 
     # Step 6: Address labeling
     typer.echo("[6/12] Labeling addresses ...")
-    # Try to find deployer
     deployer = None
     try:
-        deployer_addr = w3.eth.get_transaction_count(
-            w3.to_checksum_address(target_token)
-        )
-        # A simpler approach: check if we can get the creation tx from the first transfer
-    except Exception:
-        pass
+        deployer = find_deployer(w3, target_token, from_block)
+        if deployer:
+            typer.echo("  Deployer: {}".format(deployer))
+        else:
+            typer.echo("  Deployer: unknown")
+    except Exception as exc:
+        typer.echo("  Deployer lookup skipped: {}".format(exc))
 
     labels = analyze_labels(
         target_token, verified_pools, positions,
@@ -171,7 +171,7 @@ def analyze(
     metrics = calculate_all_metrics(
         verified_pools, events_all, liquidity_events,
         positions, target_token, token_decimals,
-        incident_block=incident_block, output_dir=output_dir,
+        incident_block=incident_block, output_dir=output_dir, w3=w3,
     )
     typer.echo("  TVL timeline: {} points".format(metrics.get("tvl_timeline_length", 0)))
     pool_conc = metrics.get("pool_concentration", {})

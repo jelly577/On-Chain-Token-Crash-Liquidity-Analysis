@@ -18,29 +18,40 @@ BURN_ADDRESSES = {
 }
 
 
-def find_deployer(w3: Web3, token_address: str, from_block: int) -> Optional[str]:
-    """Try to find the token contract deployer by scanning the creation transaction."""
+def find_deployer(w3: Web3, token_address: str, from_block: int = 0) -> Optional[str]:
+    """Find the token contract deployer via creation-block binary search + create tx.
+
+    ``from_block`` is unused for the search (kept for call-site compatibility).
+    """
     try:
-        tx_hash = w3.eth.get_transaction_count(Web3.to_checksum_address(token_address))
-        # Alternative: get the creation block and scan
         addr = Web3.to_checksum_address(token_address)
         code = w3.eth.get_code(addr)
-        if code == b"":
+        if not code:
             return None
 
-        # Find creation by scanning block range
-        for bn in range(from_block, min(from_block + 100, w3.eth.block_number)):
+        # Binary search the earliest block where code exists
+        low, high = 0, int(w3.eth.block_number)
+        while low < high:
+            mid = (low + high) // 2
             try:
-                block = w3.eth.get_block(bn, full_transactions=True)
-                for tx in block.get("transactions", []):
-                    if not tx.get("to"):
-                        # Contract creation tx
-                        try:
-                            receipt = w3.eth.get_transaction_receipt(tx["hash"])
-                            if receipt["contractAddress"] and receipt["contractAddress"].lower() == addr.lower():
-                                return Web3.to_checksum_address(tx["from"])
-                        except Exception:
-                            pass
+                has_code = bool(w3.eth.get_code(addr, mid))
+            except Exception:
+                has_code = False
+            if has_code:
+                high = mid
+            else:
+                low = mid + 1
+        creation_block = low
+
+        block = w3.eth.get_block(creation_block, full_transactions=True)
+        for tx in block.get("transactions", []) or []:
+            if tx.get("to"):
+                continue
+            try:
+                receipt = w3.eth.get_transaction_receipt(tx["hash"])
+                created = receipt.get("contractAddress")
+                if created and created.lower() == addr.lower():
+                    return Web3.to_checksum_address(tx["from"])
             except Exception:
                 continue
     except Exception:

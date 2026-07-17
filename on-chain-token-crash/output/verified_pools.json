@@ -16,7 +16,7 @@
     "creation_block": 0,
     "creation_transaction": "",
     "verified": true,
-    "verification_confidence": 1.0
+    "verification_confidence": 0.875
   },
   {
     "chain_id": 1,
@@ -37,6 +37,6 @@
     "creation_block": 0,
     "creation_transaction": "",
     "verified": true,
-    "verification_confidence": 1.0
+    "verification_confidence": 0.9167
   }
 ]

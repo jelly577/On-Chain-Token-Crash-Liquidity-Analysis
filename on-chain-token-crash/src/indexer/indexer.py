@@ -664,10 +664,11 @@ def index_v3_position_events(
                 return _normalize_v3_position_event(evt, pool_map, timestamps)
             return _norm
 
-        on_raw = update_map_from_increase if evt_name == "IncreaseLiquidity" else None
+        # Resolve tokenId→pool for every PM event (not only IncreaseLiquidity).
+        # Otherwise DecreaseLiquidity in-window for older NFTs keeps pool_address empty.
         stream = _StreamIndexer(
             w3, key, from_block, to_block, checkpoint, checkpoint_path,
-            cache_dir, ts_cache, make_norm(), on_raw_chunk=on_raw,
+            cache_dir, ts_cache, make_norm(), on_raw_chunk=update_map_from_increase,
         )
         events.extend(stream.run(getattr(pm_contract.events, evt_name)))
 

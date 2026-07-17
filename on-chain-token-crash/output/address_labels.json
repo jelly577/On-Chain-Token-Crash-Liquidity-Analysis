@@ -63,6 +63,15 @@
     ]
   },
   {
+    "address": "0x8EF7d63150E027Bd31FD84dfeCe615E1a0bbd48a",
+    "label": "Deployer",
+    "category": "token_creator",
+    "confidence": 1.0,
+    "evidence": [
+      "Token contract creator address"
+    ]
+  },
+  {
     "address": "0x000000000000000000000000000000000000dEaD",
     "label": "Burn Address",
     "category": "burn",

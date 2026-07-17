@@ -89,6 +89,39 @@ def reconstruct_v2_holders(
                     confidence=0.9,
                 ))
 
+        # Fallback: window may miss LP Transfers — snapshot balanceOf for known actors
+        if not any(p.pool_address == pair_addr for p in positions):
+            candidates: set[str] = set()
+            for evt in events_by_pool.get(pair_addr.lower(), []):
+                for key in ("actor", "recipient"):
+                    a = evt.get(key) or ""
+                    if a and a.lower() not in (
+                        "0x0000000000000000000000000000000000000000",
+                        pair_addr.lower(),
+                    ):
+                        candidates.add(Web3.to_checksum_address(a))
+            try:
+                pair_contract = get_contract(w3, pair_addr, "uniswap_v2_pair")
+                for addr in candidates:
+                    try:
+                        bal = int(pair_contract.functions.balanceOf(addr).call())
+                    except Exception:
+                        continue
+                    if bal <= 0:
+                        continue
+                    share = bal / total_supply
+                    positions.append(Position(
+                        pool_address=pair_addr,
+                        owner=addr,
+                        lp_token_address=pair_addr,
+                        liquidity=str(bal),
+                        share_pct=round(share * 100, 6),
+                        resolution_method="v2_balanceof_snapshot",
+                        confidence=0.75,
+                    ))
+            except Exception:
+                pass
+
     return positions
 
 

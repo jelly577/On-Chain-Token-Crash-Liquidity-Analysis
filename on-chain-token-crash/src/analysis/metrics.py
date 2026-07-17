@@ -29,16 +29,12 @@ def estimate_price_v2(
     t0 = Web3.to_checksum_address(pool.token0)
     t1 = Web3.to_checksum_address(pool.token1)
 
-    if target == t0:
-        if reserve1 > 0:
-            price = (reserve1 / 10 ** decimals1) / (reserve0 / 10 ** decimals0)
-        else:
-            price = 0.0
+    if reserve0 <= 0 or reserve1 <= 0:
+        price = 0.0
+    elif target == t0:
+        price = (reserve1 / 10 ** decimals1) / (reserve0 / 10 ** decimals0)
     else:
-        if reserve0 > 0:
-            price = (reserve0 / 10 ** decimals0) / (reserve1 / 10 ** decimals1)
-        else:
-            price = 0.0
+        price = (reserve0 / 10 ** decimals0) / (reserve1 / 10 ** decimals1)
 
     # Determine quote symbol
     partner_addr = t1 if target == t0 else t0
@@ -97,6 +93,42 @@ def calculate_tvl_v2(
         return reserve1 * 2
 
 
+def snapshot_onchain_pool_tvl(
+    w3: Web3,
+    verified_pools: list[VerifiedPool],
+    target_token: str,
+) -> dict[str, int]:
+    """Read live pool balances/reserves and return TVL in target-token raw units."""
+    target = Web3.to_checksum_address(target_token)
+    token = get_contract(w3, target, "erc20")
+    tvl_by_pool: dict[str, int] = {}
+
+    for pool in verified_pools:
+        if not pool.verified:
+            continue
+        pa = pool.pool_address
+        try:
+            if pool.version == "v2":
+                pair = get_contract(w3, pa, "uniswap_v2_pair")
+                reserve0, reserve1, _ = pair.functions.getReserves().call()
+                tvl = int(calculate_tvl_v2(pool, target, int(reserve0), int(reserve1)))
+            else:
+                # V3 / others: target-token balance held by the pool contract
+                bal = int(token.functions.balanceOf(Web3.to_checksum_address(pa)).call())
+                # Approximate full-pool TVL as 2x the target side when target is in the pair
+                t0 = Web3.to_checksum_address(pool.token0)
+                t1 = Web3.to_checksum_address(pool.token1)
+                if target in (t0, t1) and bal > 0:
+                    tvl = bal * 2
+                else:
+                    tvl = bal
+            if tvl > 0:
+                tvl_by_pool[pa] = tvl
+        except Exception:
+            continue
+    return tvl_by_pool
+
+
 def build_tvl_timeline(
     verified_pools: list[VerifiedPool],
     events_all: list[dict],
@@ -107,15 +139,12 @@ def build_tvl_timeline(
     timeline: list[dict] = []
     target = Web3.to_checksum_address(target_token)
 
-    # Group events by pool and type
+    # Group events by pool and type (normalize address case)
     pool_events: dict[str, list[dict]] = defaultdict(list)
     for evt in events_all:
-        pa = evt.get("pool_address", "")
+        pa = (evt.get("pool_address") or "").lower()
         if pa and evt.get("event_type") in ("SWAP", "LIQUIDITY_ADD", "LIQUIDITY_REMOVE"):
             pool_events[pa].append(evt)
-
-    # Track state per pool
-    pool_state: dict[str, dict] = {}
 
     for pool in verified_pools:
         if not pool.verified:
@@ -124,7 +153,7 @@ def build_tvl_timeline(
         events = pool_events.get(pa, [])
         if not events:
             continue
-        events.sort(key=lambda e: (e["block_number"], e["log_index"]))
+        events.sort(key=lambda e: (e["block_number"], e.get("log_index", 0)))
 
         t0 = Web3.to_checksum_address(pool.token0)
         t1 = Web3.to_checksum_address(pool.token1)
@@ -136,8 +165,8 @@ def build_tvl_timeline(
             for evt in events:
                 bn = evt["block_number"]
                 ts = evt["block_timestamp"]
-                a0 = int(evt.get("token0_amount", "0"))
-                a1 = int(evt.get("token1_amount", "0"))
+                a0 = int(evt.get("token0_amount", "0") or "0")
+                a1 = int(evt.get("token1_amount", "0") or "0")
                 etype = evt["event_type"]
                 source = evt.get("source_event", "")
 
@@ -145,22 +174,15 @@ def build_tvl_timeline(
                     reserve0 = a0
                     reserve1 = a1
                 elif etype == "SWAP":
-                    in_amount = abs(int(evt.get("token0_amount", "0")))
-                    if int(evt.get("token0_amount", "0")) < 0:
-                        reserve0 -= in_amount
-                    else:
-                        reserve0 += in_amount
-                    in_amount1 = abs(int(evt.get("token1_amount", "0")))
-                    if int(evt.get("token1_amount", "0")) < 0:
-                        reserve1 -= in_amount1
-                    else:
-                        reserve1 += in_amount1
+                    # token*_amount already signed: positive = into pool, negative = out
+                    reserve0 = max(0, reserve0 + a0)
+                    reserve1 = max(0, reserve1 + a1)
                 elif etype == "LIQUIDITY_ADD":
-                    reserve0 += a0
-                    reserve1 += a1
+                    reserve0 += abs(a0)
+                    reserve1 += abs(a1)
                 elif etype == "LIQUIDITY_REMOVE":
-                    reserve0 = max(0, reserve0 - a0)
-                    reserve1 = max(0, reserve1 - a1)
+                    reserve0 = max(0, reserve0 - abs(a0))
+                    reserve1 = max(0, reserve1 - abs(a1))
 
                 tvl_in_token = (reserve0 * 2) if target_is_t0 else (reserve1 * 2)
                 price, quote = estimate_price_v2(
@@ -182,26 +204,23 @@ def build_tvl_timeline(
                 })
 
         elif pool.version == "v3":
-            # For V3, we track cumulative liquidity changes from events
             cum_liquidity = 0
-            token0_amounts = 0
-            token1_amounts = 0
             for evt in events:
                 bn = evt["block_number"]
                 ts = evt["block_timestamp"]
-                a0 = abs(int(evt.get("token0_amount", "0")))
-                a1 = abs(int(evt.get("token1_amount", "0")))
+                a0 = abs(int(evt.get("token0_amount", "0") or "0"))
+                a1 = abs(int(evt.get("token1_amount", "0") or "0"))
                 etype = evt["event_type"]
 
-                if etype == "SWAP":
-                    # Sum token flows for rough TVL approximation
-                    if not target_is_t0:
-                        a0, a1 = a1, a0
-                    token0_amounts = a0
-                elif etype in ("LIQUIDITY_ADD", "LIQUIDITY_REMOVE"):
-                    delta = int(evt.get("liquidity_delta", "0"))
+                if etype in ("LIQUIDITY_ADD", "LIQUIDITY_REMOVE"):
+                    delta = int(evt.get("liquidity_delta", "0") or "0")
                     cum_liquidity += delta
                     cum_liquidity = max(0, cum_liquidity)
+
+                # Approximate TVL in target-token units from event amounts
+                tvl_approx = (a0 * 2) if target_is_t0 else (a1 * 2)
+                if etype == "SWAP":
+                    tvl_approx = a0 if target_is_t0 else a1
 
                 timeline.append({
                     "block_number": bn,
@@ -214,6 +233,7 @@ def build_tvl_timeline(
                     "liquidity": str(cum_liquidity),
                     "token0_amount": str(a0),
                     "token1_amount": str(a1),
+                    "tvl_in_token": str(tvl_approx),
                     "price": 0.0,
                     "quote_symbol": "N/A",
                 })
@@ -224,15 +244,21 @@ def build_tvl_timeline(
 def calculate_pool_concentration(
     verified_pools: list[VerifiedPool],
     timeline: list[dict],
+    onchain_tvl: Optional[dict[str, int]] = None,
 ) -> dict[str, Any]:
-    """Calculate main-pool dominance and concentration metrics."""
-    # TVL per pool at the end of the timeline
+    """Calculate main-pool dominance and concentration metrics.
+
+    Prefers live on-chain TVL snapshot when available; falls back to timeline.
+    """
     final_tvl: dict[str, int] = {}
-    for entry in timeline:
-        pa = entry["pool_address"]
-        tvl = int(entry.get("tvl_in_token", "0"))
-        if tvl > 0:
-            final_tvl[pa] = tvl
+    if onchain_tvl:
+        final_tvl = {k: int(v) for k, v in onchain_tvl.items() if int(v) > 0}
+    else:
+        for entry in timeline:
+            pa = entry["pool_address"]
+            tvl = int(entry.get("tvl_in_token", "0") or "0")
+            if tvl > 0:
+                final_tvl[pa] = tvl
 
     if not final_tvl:
         return {
@@ -241,6 +267,7 @@ def calculate_pool_concentration(
             "main_pool_tvl": 0,
             "main_pool_share": 0,
             "num_active_pools": 0,
+            "source": "none",
         }
 
     total_tvl = sum(final_tvl.values())
@@ -253,8 +280,11 @@ def calculate_pool_concentration(
         "main_pool": main_pool,
         "main_pool_tvl": main_pool_tvl,
         "main_pool_share": round(main_pool_share, 6),
-        "active_pools": len(final_tvl),
-        "per_pool_tvl": {k: v for k, v in sorted(final_tvl.items(), key=lambda x: -x[1])},
+        "num_active_pools": len(final_tvl),
+        "per_pool_tvl": {
+            k: v for k, v in sorted(final_tvl.items(), key=lambda x: -x[1])
+        },
+        "source": "onchain" if onchain_tvl else "timeline",
     }
 
 
@@ -266,13 +296,13 @@ def calculate_lp_concentration(
     if not positions:
         return {"top_lp_share": 0, "top_n_share": 0, "num_lps": 0}
 
-    total_share = sum(p.share_pct for p in positions)
     sorted_pos = sorted(positions, key=lambda p: p.share_pct, reverse=True)
     top_lp_share = sorted_pos[0].share_pct if sorted_pos else 0
     top_n_share = sum(p.share_pct for p in sorted_pos[:top_n])
 
     return {
         "top_lp_share": round(top_lp_share, 6),
+        "top_n_share": round(top_n_share, 6),
         "top_{}_share".format(top_n): round(top_n_share, 6),
         "total_lp_positions": len(positions),
         "num_lps": len(set(p.owner for p in positions)),
@@ -284,25 +314,41 @@ def calculate_withdrawal_severity(
     pre_event_tvl: int,
     incident_block: int,
 ) -> dict[str, Any]:
-    """Calculate the severity of liquidity withdrawals before/during the crash window."""
-    # Filter to liquidity removal events before or near the incident block
-    pre_crash_removals = [
+    """Calculate the severity of liquidity withdrawals before/during the crash window.
+
+    If ``incident_block`` is 0, use all LIQUIDITY_REMOVE events in the indexed window.
+    """
+    removals = [
         e for e in events_liquidity
         if e.get("event_type") == "LIQUIDITY_REMOVE"
-        and e.get("block_number", 0) <= incident_block
     ]
+    if incident_block and incident_block > 0:
+        pre_crash_removals = [
+            e for e in removals
+            if e.get("block_number", 0) <= incident_block
+        ]
+    else:
+        pre_crash_removals = removals
 
-    total_removed = sum(
-        abs(int(e.get("token0_amount", "0")) + int(e.get("token1_amount", "0")))
-        for e in pre_crash_removals
-    )
-
+    # Severity ratio only from removals tied to a known pool (PM events often
+    # lack pool_address and use unrelated token amounts).
+    amount_events = [
+        e for e in pre_crash_removals
+        if (e.get("pool_address") or "").strip()
+    ]
     total_removed_tokens = sum(
-        abs(int(e.get("token0_amount", "0")))
-        for e in pre_crash_removals
+        abs(int(e.get("token0_amount", "0") or "0"))
+        + abs(int(e.get("token1_amount", "0") or "0"))
+        for e in amount_events
     )
 
-    severity = total_removed / pre_event_tvl if pre_event_tvl > 0 else 0
+    severity = (
+        total_removed_tokens / pre_event_tvl
+        if pre_event_tvl > 0 and total_removed_tokens > 0
+        else 0.0
+    )
+    # Cap for scoring stability
+    severity = min(severity, 1.0)
 
     return {
         "num_withdrawals": len(pre_crash_removals),
@@ -311,11 +357,15 @@ def calculate_withdrawal_severity(
         "withdrawal_severity": round(severity, 6),
         "withdrawal_events": [
             {
+                "block_number": e["block_number"],
                 "block": e["block_number"],
-                "ts": e["block_timestamp"],
-                "pool": e["pool_address"],
+                "ts": e.get("block_timestamp", 0),
+                "pool": e.get("pool_address", ""),
+                "pool_address": e.get("pool_address", ""),
                 "amount0": e.get("token0_amount", "0"),
                 "amount1": e.get("token1_amount", "0"),
+                "token0_amount": e.get("token0_amount", "0"),
+                "token1_amount": e.get("token1_amount", "0"),
                 "actor": e.get("actor", ""),
             }
             for e in pre_crash_removals
@@ -332,6 +382,7 @@ def calculate_all_metrics(
     token_decimals: int,
     incident_block: int = 0,
     output_dir: str | Path = "output",
+    w3: Optional[Web3] = None,
 ) -> dict[str, Any]:
     """Main entry point: compute all liquidity and risk metrics."""
     out = Path(output_dir)
@@ -341,10 +392,19 @@ def calculate_all_metrics(
     )
     _write_json(out / "tvl_timeline.json", timeline)
 
-    pool_conc = calculate_pool_concentration(verified_pools, timeline)
+    onchain_tvl = None
+    if w3 is not None:
+        try:
+            onchain_tvl = snapshot_onchain_pool_tvl(w3, verified_pools, target_token)
+        except Exception:
+            onchain_tvl = None
+
+    pool_conc = calculate_pool_concentration(
+        verified_pools, timeline, onchain_tvl=onchain_tvl
+    )
     lp_conc = calculate_lp_concentration(positions)
 
-    pre_event_tvl = pool_conc.get("total_tvl", 0)
+    pre_event_tvl = int(pool_conc.get("total_tvl", 0) or 0)
     withdrawal_sev = calculate_withdrawal_severity(
         events_liquidity, pre_event_tvl, incident_block
     )
@@ -354,6 +414,7 @@ def calculate_all_metrics(
         "lp_concentration": lp_conc,
         "withdrawal_severity": withdrawal_sev,
         "tvl_timeline_length": len(timeline),
+        "tvl_timeline": timeline,
     }
     _write_json(out / "metrics.json", metrics)
 
