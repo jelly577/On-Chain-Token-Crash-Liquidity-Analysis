@@ -27,6 +27,20 @@ def generate_dashboard(
     holdings_data = holdings.get("holdings", [])
     pool_ident = holdings.get("pool_identification", [])
 
+    if not pool_ident and verified_pools:
+        pool_ident = [
+            {
+                "pool_address": p.get("pool_address", ""),
+                "protocol": p.get("protocol", ""),
+                "version": p.get("version", ""),
+                "token0": p.get("token0", ""),
+                "token1": p.get("token1", ""),
+                "in_holders_list": False,
+            }
+            for p in verified_pools
+            if p.get("verified", True)
+        ]
+
     top_holders = [h for h in holdings_data if not h.get("is_pool")][:20]
     pool_holders = [h for h in holdings_data if h.get("is_pool")]
 
@@ -36,9 +50,13 @@ def generate_dashboard(
     risk_score = risk.get("final_score", 0)
     risk_level = risk.get("risk_level", "N/A")
     symbol = token_profile.get("symbol", "TOKEN")
+    chain_id = token_profile.get("chain_id", 1)
+    token_addr = token_profile.get("address", "")
 
     html = _build_html(
         symbol=symbol,
+        chain_id=chain_id,
+        token_address=token_addr,
         holdings_data=holdings_data,
         top_holders=top_holders,
         pool_holders=pool_holders,
@@ -62,6 +80,8 @@ def generate_dashboard(
 
 def _build_html(
     symbol: str,
+    chain_id: int,
+    token_address: str,
     holdings_data: list,
     top_holders: list,
     pool_holders: list,
@@ -81,6 +101,14 @@ def _build_html(
     pool_i_json = _json.dumps(pool_ident, indent=2)
     risk_lvl_class = risk_level.lower() if risk_level != "N/A" else "medium"
     main_pool_share = pool_conc.get("main_pool_share", 0) * 100
+    empty_note = ""
+    if holdings_count == 0 and total_addresses == 0:
+        empty_note = (
+            '<p class="subtitle" style="color:#c62828">'
+            "No transfer/holdings data in this block window — "
+            "pool list and risk score below still reflect discovery results."
+            "</p>"
+        )
 
     table_top = _table_top_holders(top_holders, symbol)
     table_pool = _table_pool_holders(pool_holders, symbol)
@@ -108,6 +136,9 @@ h1{{font-size:24px;margin-bottom:4px}}
 .bg-green{{background:#e8f5e9;color:#2e7d32}}
 .bg-orange{{background:#fff3e0;color:#e65100}}
 .bg-red{{background:#fce4ec;color:#c62828}}
+.bg-low{{background:#e8f5e9;color:#2e7d32}}
+.bg-medium{{background:#fff3e0;color:#e65100}}
+.bg-high{{background:#fce4ec;color:#c62828}}
 .fw{{grid-column:1/-1}}
 .chart-box{{position:relative;height:250px}}
 .chart-box-sm{{position:relative;height:200px}}
@@ -122,7 +153,8 @@ td{{padding:6px;border-bottom:1px solid #f0f0f0}}
 <body>
 <div class="container">
   <h1>{symbol} Holdings & Liquidity Dashboard</h1>
-  <p class="subtitle">Data queried at: {query_time or "N/A"}</p>
+  <p class="subtitle">Chain ID: {chain_id} · Token: <span class="addr">{token_address or "N/A"}</span> · Queried: {query_time or "N/A"}</p>
+  {empty_note}
   <div class="grid">
     <div class="card">
       <div class="stat-value">{total_addresses}</div>
@@ -216,8 +248,8 @@ def _table_pool_holders(holders: list, symbol: str) -> str:
 def _table_pool_ident(pools: list) -> str:
     rows = []
     for p in pools:
-        t0 = p.get("token0", "")[:10] + "..."
-        t1 = p.get("token1", "")[:10] + "..."
+        t0 = (p.get("token0") or "")[:10] + "..."
+        t1 = (p.get("token1") or "")[:10] + "..."
         pair = f"{t0}/{t1}"
         in_list = "Yes" if p.get("in_holders_list") else "No"
         rows.append(

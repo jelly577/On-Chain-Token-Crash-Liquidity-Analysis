@@ -19,7 +19,7 @@ from web3 import Web3
 from web3.types import EventData
 
 from ..client import get_contract
-from ..discovery.log_utils import TOPIC_CHUNK_SIZE, get_logs_chunked
+from ..discovery.log_utils import DEFAULT_CHUNK_SIZE, get_logs_chunked
 from ..models import NormalizedEvent, VerifiedPool
 
 
@@ -451,11 +451,13 @@ class _StreamIndexer:
                 last_logged_block = chunk_end
                 last_log_time = now
 
+        # Start large; adaptive logic shrinks (and caps) if the RPC rejects the range.
+        # Free-tier Alchemy often falls to ~10; Infura/paid nodes can stay at 2k+.
         get_logs_chunked(
             event_obj,
             start,
             self.to_block,
-            chunk_size=TOPIC_CHUNK_SIZE,
+            chunk_size=DEFAULT_CHUNK_SIZE,
             on_chunk=on_chunk,
         )
         self.checkpoint["streams"][self.key] = self.to_block

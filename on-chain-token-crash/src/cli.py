@@ -52,7 +52,7 @@ def analyze(
     fast_mode: bool = typer.Option(False, help="Skip exhaustive event indexing (faster, less data)"),
     pick: int = typer.Option(0, help="When name matches multiple tokens, pick candidate index"),
 ):
-    """End-to-end analysis of a token's on-chain liquidity and crash timeline.
+    """End-to-end analysis: token → liquidity report + dashboard.
 
     Runs the full pipeline:
       1. Token profiling
@@ -65,6 +65,8 @@ def analyze(
       8. Timeline analysis
       9. Risk assessment
       10. Report generation
+      11. Holdings analysis
+      12. Dashboard generation
     """
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -76,20 +78,20 @@ def analyze(
     chain_id_val = get_chain_id(registry)
 
     # Step 1: Token profile
-    typer.echo("[1/10] Profiling token ...")
+    typer.echo("[1/12] Profiling token ...")
     profile = profile_token(w3, token_address, chain_id_val)
     _write_json(out / "token_profile.json", profile.__dict__)
     typer.echo("  Symbol: {}, Decimals: {}".format(profile.symbol, profile.decimals))
     target_token = profile.address
 
     # Step 2: Discover pools
-    typer.echo("[2/10] Discovering pools ...")
+    typer.echo("[2/12] Discovering pools ...")
     result = discover_pools(w3, token_address, from_block, to_block, chain_id_val)
     _write_json(out / "pool_candidates.json", result)
     typer.echo("  Found {} candidate(s)".format(len(result["pools"])))
 
     # Step 3: Verify pools
-    typer.echo("[3/10] Verifying pools ...")
+    typer.echo("[3/12] Verifying pools ...")
     candidates = [VerifiedPool(**dict(pdata)) for pdata in result["pools"]]
     verified_pools = verify_pools(
         w3, candidates, target_token=token_address,
@@ -107,7 +109,7 @@ def analyze(
         raise typer.Exit(1)
 
     # Step 4: Event indexing
-    typer.echo("[4/10] Indexing events (chunk-level resume enabled; Ctrl+C is safe) ...")
+    typer.echo("[4/12] Indexing events (chunk-level resume enabled; Ctrl+C is safe) ...")
     typer.echo("  Progress: {}/indexer_cache + event_indexer_checkpoint.json".format(output_dir))
     indexed = index_events(
         w3,
@@ -135,7 +137,7 @@ def analyze(
         events_all = swaps + liquidity_events + transfers
 
     # Step 5: Position analysis
-    typer.echo("[5/10] Analyzing positions ...")
+    typer.echo("[5/12] Analyzing positions ...")
     positions, pos_summary = analyze_positions(
         w3, verified_pools, events_all, target_token,
         from_block, to_block, output_dir=output_dir,
@@ -145,7 +147,7 @@ def analyze(
     ))
 
     # Step 6: Address labeling
-    typer.echo("[6/10] Labeling addresses ...")
+    typer.echo("[6/12] Labeling addresses ...")
     # Try to find deployer
     deployer = None
     try:
@@ -164,7 +166,7 @@ def analyze(
     typer.echo("  {} label(s) assigned".format(len(labels)))
 
     # Step 7: Metrics calculation
-    typer.echo("[7/10] Calculating metrics ...")
+    typer.echo("[7/12] Calculating metrics ...")
     token_decimals = profile.decimals or 18
     metrics = calculate_all_metrics(
         verified_pools, events_all, liquidity_events,
@@ -176,7 +178,7 @@ def analyze(
     typer.echo("  Main pool share: {:.2%}".format(pool_conc.get("main_pool_share", 0)))
 
     # Step 8: Timeline analysis
-    typer.echo("[8/10] Building timeline ...")
+    typer.echo("[8/12] Building timeline ...")
     timeline = analyze_timeline(
         events_all, swaps, liquidity_events, transfers,
         verified_pools, target_token,
@@ -185,7 +187,7 @@ def analyze(
     typer.echo("  {} total events in timeline".format(timeline.get("total_events", 0)))
 
     # Step 9: Risk assessment
-    typer.echo("[9/10] Computing risk score ...")
+    typer.echo("[9/12] Computing risk score ...")
     risk = compute_risk(
         pool_concentration=metrics.get("pool_concentration", {}),
         lp_concentration=metrics.get("lp_concentration", {}),
@@ -202,7 +204,7 @@ def analyze(
     ))
 
     # Step 10: Report generation
-    typer.echo("[10/10] Generating report ...")
+    typer.echo("[10/12] Generating report ...")
     report = generate_report(
         token_profile=profile.__dict__,
         verified_pools=[to_dict(p) for p in verified_pools],
@@ -219,11 +221,51 @@ def analyze(
     )
     typer.echo("  report.md written")
 
+    # Step 11: Holdings
+    typer.echo("[11/12] Analyzing holdings ...")
+    if fast_mode and not transfers:
+        typer.echo("  Skipping balance queries (--fast-mode with no transfers)")
+        holdings_result = {
+            "holdings": [],
+            "pool_identification": [
+                {
+                    "pool_address": p.pool_address,
+                    "protocol": p.protocol,
+                    "version": p.version,
+                    "token0": p.token0,
+                    "token1": p.token1,
+                    "in_holders_list": False,
+                }
+                for p in verified_pools if p.verified
+            ],
+            "holdings_count": 0,
+            "total_unique_addresses": 0,
+            "query_time_human": "",
+        }
+        _write_json(out / "holdings.json", holdings_result)
+    else:
+        holdings_result = analyze_holdings(
+            w3, target_token, token_decimals, transfers,
+            verified_pools, from_block, to_block,
+            output_dir=output_dir,
+        )
+        typer.echo("  {} unique addresses, {} holders with balance".format(
+            holdings_result.get("total_unique_addresses", 0),
+            holdings_result.get("holdings_count", 0),
+        ))
+
+    # Step 12: Dashboard
+    typer.echo("[12/12] Generating dashboard ...")
+    dashboard_path = generate_dashboard(output_dir=output_dir)
+    typer.echo("  {}".format(dashboard_path))
+
     # Summary
     typer.echo("\n=== Analysis Complete ===")
+    typer.echo("Chain ID: {}  Token: {}".format(chain_id_val, target_token))
     typer.echo("Risk Score: {:.4f} / 1.00 ({})".format(
         risk.get("final_score", 0), risk.get("risk_level", "N/A")
     ))
+    typer.echo("Dashboard: {}".format(dashboard_path))
     typer.echo("Output directory: {}".format(out.resolve()))
 
 

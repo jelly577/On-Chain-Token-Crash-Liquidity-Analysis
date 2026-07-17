@@ -62,7 +62,7 @@ def _load_abi(name: str) -> list:
 def get_web3(rpc_url: Optional[str] = None) -> Web3:
     """Return a Web3 instance connected to the given or env-configured RPC.
 
-    Includes built-in rate limiting (0.05s between requests) and
+    Includes optional client-side pacing (currently off: delay=0) and
     automatic retry with backoff on 429 / 5xx responses.
     """
     url = rpc_url or os.environ.get("ETH_RPC_URL")
@@ -70,7 +70,7 @@ def get_web3(rpc_url: Optional[str] = None) -> Web3:
         raise ValueError(
             "No RPC URL provided. Set ETH_RPC_URL or pass rpc_url."
         )
-    session = _RateLimitedSession(delay=0.05)
+    session = _RateLimitedSession(delay=0.0)
     provider = HTTPProvider(url, session=session)
     w3 = Web3(provider)
     if not w3.is_connected():
