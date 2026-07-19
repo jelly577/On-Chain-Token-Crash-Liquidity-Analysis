@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPX Holdings Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f7fa;color:#1a1a2e;padding:20px}
+.container{max-width:1400px;margin:0 auto}
+h1{font-size:24px;margin-bottom:4px}
+.subtitle{color:#666;font-size:14px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-bottom:20px}
+.card{background:#fff;border-radius:8px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.card h2{font-size:15px;color:#555;margin-bottom:12px}
+.stat-value{font-size:28px;font-weight:700}
+.stat-label{font-size:12px;color:#888}
+.badge{display:inline-block;padding:4px 12px;border-radius:12px;font-weight:600;font-size:14px}
+.bg-green{background:#e8f5e9;color:#2e7d32}
+.bg-orange{background:#fff3e0;color:#e65100}
+.bg-red{background:#fce4ec;color:#c62828}
+.bg-low{background:#e8f5e9;color:#2e7d32}
+.bg-medium{background:#fff3e0;color:#e65100}
+.bg-high{background:#fce4ec;color:#c62828}
+.fw{grid-column:1/-1}
+.chart-box{position:relative;height:250px}
+.chart-box-sm{position:relative;height:200px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 6px;border-bottom:2px solid #eee;color:#666;font-weight:600}
+td{padding:6px;border-bottom:1px solid #f0f0f0}
+.addr{font-family:'SF Mono',Monaco,monospace;font-size:12px;color:#1565c0}
+.plabel{display:inline-block;padding:2px 6px;border-radius:4px;font-size:11px;background:#e3f2fd;color:#1565c0}
+.scroll{max-height:400px;overflow-y:auto}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>SPX Holdings & Liquidity Dashboard</h1>
+  <p class="subtitle">Chain ID: 1 · Token: <span class="addr">0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C</span> · Queried: 2026-07-18 20:00:51 UTC</p>
+  
+  <div class="grid">
+    <div class="card">
+      <div class="stat-value">3</div>
+      <div class="stat-label">Unique Addresses (from transfers)</div>
+    </div>
+    <div class="card">
+      <div class="stat-value">3</div>
+      <div class="stat-label">Holders with Balance</div>
+    </div>
+    <div class="card">
+      <div class="stat-value">8</div>
+      <div class="stat-label">Verified Pools</div>
+    </div>
+    <div class="card">
+      <div class="stat-value"><span class="badge bg-medium">N/A</span></div>
+      <div class="stat-label">Risk Score: 0.0000</div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h2>Holder Distribution</h2>
+      <div class="chart-box-sm"><canvas id="c1"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Pool Concentration</h2>
+      <div class="chart-box-sm"><canvas id="c2"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Top 10 Non-Pool Holders</h2>
+      <div class="chart-box-sm"><canvas id="c3"></canvas></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="card fw">
+      <h2>Top 20 Non-Pool Holders by Balance</h2>
+      <div class="scroll"><table><thead><tr><th>#</th><th>Address</th><th>Balance (SPX)</th><th>Tx Count</th><th>Label</th></tr></thead><tbody><tr><td>1</td><td class="addr">0x0376b46804BE07379829bb321002EC170D52cBfc</td><td>0.0000 SPX</td><td>1</td><td></td></tr>
+<tr><td>2</td><td class="addr">0x2dfaDAB8266483beD9Fd9A292Ce56596a2D1378D</td><td>0.0000 SPX</td><td>2</td><td></td></tr></tbody></table></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="card fw">
+      <h2>Pool Addresses in Holder List</h2>
+      <div class="scroll"><table><thead><tr><th>Pool Address</th><th>Protocol</th><th>Balance (SPX)</th><th>Label</th></tr></thead><tbody><tr><td class="addr">0x52c77b0CB827aFbAD022E6d6CAF2C44452eDbc39</td><td>UNISWAP V2</td><td>13.22M SPX</td><td><span class="plabel">POOL</span></td></tr></tbody></table></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="card fw">
+      <h2>Pool Identification Summary</h2>
+      <div class="scroll"><table><thead><tr><th>Pool Address</th><th>Protocol / Version</th><th>Token Pair</th><th>In Holders List</th></tr></thead><tbody><tr><td class="addr">0x52c77b0CB827aFbAD022E6d6CAF2C44452eDbc39</td><td>uniswap v2</td><td>0xC02aaA39.../0xE0f63A42...</td><td>Yes</td></tr>
+<tr><td class="addr">0xEb8261A88eBF20f6fC6fd402a50e864FfcEFd4C6</td><td>uniswap v2</td><td>0xA0b86991.../0xE0f63A42...</td><td>No</td></tr>
+<tr><td class="addr">0xE60FbA68Aa34040a1da64Cc661d06920853C16CF</td><td>uniswap v3</td><td>0xC02aaA39.../0xE0f63A42...</td><td>No</td></tr>
+<tr><td class="addr">0x7C706586679Af2BA6D1A9fC2DA9C6aF59883fdD3</td><td>uniswap v3</td><td>0xC02aaA39.../0xE0f63A42...</td><td>No</td></tr>
+<tr><td class="addr">0x00Ed26e794b949E18B142F9108429b74CE08aC99</td><td>uniswap v3</td><td>0xC02aaA39.../0xE0f63A42...</td><td>No</td></tr>
+<tr><td class="addr">0x95b5Dc7efdc7b9CB5A1254dF176Bb526Ad1B7C72</td><td>uniswap v3</td><td>0xA0b86991.../0xE0f63A42...</td><td>No</td></tr>
+<tr><td class="addr">0x14167b77c5bc79C16bb4493830B2fbb74f503665</td><td>uniswap v3</td><td>0xA0b86991.../0xE0f63A42...</td><td>No</td></tr>
+<tr><td class="addr">0xa1532d04697cCB522E4EFC8FBa5daa75A412f7b8</td><td>uniswap v3</td><td>0xA0b86991.../0xE0f63A42...</td><td>No</td></tr></tbody></table></div>
+    </div>
+  </div>
+</div>
+<script>
+const topH = [
+  {
+    "address": "0x0376b46804BE07379829bb321002EC170D52cBfc",
+    "balance_raw": "0",
+    "balance_decimal": 0.0,
+    "is_pool": false,
+    "pool_label": "",
+    "tx_count": 1,
+    "first_seen_block": 19000022,
+    "last_seen_block": 19000022,
+    "query_timestamp": 1784404851
+  },
+  {
+    "address": "0x2dfaDAB8266483beD9Fd9A292Ce56596a2D1378D",
+    "balance_raw": "0",
+    "balance_decimal": 0.0,
+    "is_pool": false,
+    "pool_label": "",
+    "tx_count": 2,
+    "first_seen_block": 19000022,
+    "last_seen_block": 19000022,
+    "query_timestamp": 1784404851
+  }
+];
+const poolH = [
+  {
+    "address": "0x52c77b0CB827aFbAD022E6d6CAF2C44452eDbc39",
+    "balance_raw": "1321861816160557",
+    "balance_decimal": 13218618.161606,
+    "is_pool": true,
+    "pool_label": "UNISWAP V2",
+    "tx_count": 1,
+    "first_seen_block": 19000022,
+    "last_seen_block": 19000022,
+    "query_timestamp": 1784404851
+  }
+];
+const poolI = [
+  {
+    "pool_address": "0x52c77b0CB827aFbAD022E6d6CAF2C44452eDbc39",
+    "protocol": "uniswap",
+    "version": "v2",
+    "token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": null,
+    "balance_raw": "1321861816160557",
+    "balance_decimal": 13218618.161606,
+    "in_holders_list": true
+  },
+  {
+    "pool_address": "0xEb8261A88eBF20f6fC6fd402a50e864FfcEFd4C6",
+    "protocol": "uniswap",
+    "version": "v2",
+    "token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": null,
+    "balance_raw": "0",
+    "balance_decimal": 0.0,
+    "in_holders_list": false
+  },
+  {
+    "pool_address": "0xE60FbA68Aa34040a1da64Cc661d06920853C16CF",
+    "protocol": "uniswap",
+    "version": "v3",
+    "token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 500,
+    "balance_raw": "0",
+    "balance_decimal": 0.0,
+    "in_holders_list": false
+  },
+  {
+    "pool_address": "0x7C706586679Af2BA6D1A9fC2DA9C6aF59883fdD3",
+    "protocol": "uniswap",
+    "version": "v3",
+    "token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 3000,
+    "balance_raw": "0",
+    "balance_decimal": 0.0,
+    "in_holders_list": false
+  },
+  {
+    "pool_address": "0x00Ed26e794b949E18B142F9108429b74CE08aC99",
+    "protocol": "uniswap",
+    "version": "v3",
+    "token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 10000,
+    "balance_raw": "0",
+    "balance_decimal": 0.0,
+    "in_holders_list": false
+  },
+  {
+    "pool_address": "0x95b5Dc7efdc7b9CB5A1254dF176Bb526Ad1B7C72",
+    "protocol": "uniswap",
+    "version": "v3",
+    "token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 100,
+    "balance_raw": "0",
+    "balance_decimal": 0.0,
+    "in_holders_list": false
+  },
+  {
+    "pool_address": "0x14167b77c5bc79C16bb4493830B2fbb74f503665",
+    "protocol": "uniswap",
+    "version": "v3",
+    "token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 3000,
+    "balance_raw": "0",
+    "balance_decimal": 0.0,
+    "in_holders_list": false
+  },
+  {
+    "pool_address": "0xa1532d04697cCB522E4EFC8FBa5daa75A412f7b8",
+    "protocol": "uniswap",
+    "version": "v3",
+    "token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 10000,
+    "balance_raw": "0",
+    "balance_decimal": 0.0,
+    "in_holders_list": false
+  }
+];
+new Chart(document.getElementById('c1'),{type:'pie',data:{labels:['Pool LP Holders','Regular Holders'],datasets:[{data:[1,2],backgroundColor:['#42a5f5','#ef5350']}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+new Chart(document.getElementById('c2'),{type:'doughnut',data:{labels:['Main Pool Share','Other Pools'],datasets:[{data:[0.0,100.0],backgroundColor:['#ff7043','#e0e0e0']}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+new Chart(document.getElementById('c3'),{type:'bar',data:{labels:topH.slice(0,10).map(d=>d.address.slice(0,8)+'...'),datasets:[{label:'Balance',data:topH.slice(0,10).map(d=>d.balance_decimal),backgroundColor:'#42a5f5'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+</script>
+</body>
+</html>

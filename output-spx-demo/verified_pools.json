@@ -1,0 +1,166 @@
+[
+  {
+    "chain_id": 1,
+    "protocol": "uniswap",
+    "version": "v2",
+    "architecture": "direct_pair",
+    "factory_address": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
+    "router_addresses": [
+      "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+    ],
+    "pool_address": "0x52c77b0CB827aFbAD022E6d6CAF2C44452eDbc39",
+    "custody_address": "0x52c77b0CB827aFbAD022E6d6CAF2C44452eDbc39",
+    "gauge_addresses": [],
+    "token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "creation_block": 0,
+    "creation_transaction": "",
+    "verified": true,
+    "verification_confidence": 0.875
+  },
+  {
+    "chain_id": 1,
+    "protocol": "uniswap",
+    "version": "v2",
+    "architecture": "direct_pair",
+    "factory_address": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
+    "router_addresses": [
+      "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+    ],
+    "pool_address": "0xEb8261A88eBF20f6fC6fd402a50e864FfcEFd4C6",
+    "custody_address": "0xEb8261A88eBF20f6fC6fd402a50e864FfcEFd4C6",
+    "gauge_addresses": [],
+    "token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "creation_block": 0,
+    "creation_transaction": "",
+    "verified": true,
+    "verification_confidence": 0.875
+  },
+  {
+    "chain_id": 1,
+    "protocol": "uniswap",
+    "version": "v3",
+    "architecture": "concentrated_pool",
+    "factory_address": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    "router_addresses": [
+      "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    ],
+    "pool_address": "0xE60FbA68Aa34040a1da64Cc661d06920853C16CF",
+    "custody_address": "0xE60FbA68Aa34040a1da64Cc661d06920853C16CF",
+    "position_manager_address": "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+    "gauge_addresses": [],
+    "token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 500,
+    "creation_block": 0,
+    "creation_transaction": "",
+    "verified": true,
+    "verification_confidence": 0.9167
+  },
+  {
+    "chain_id": 1,
+    "protocol": "uniswap",
+    "version": "v3",
+    "architecture": "concentrated_pool",
+    "factory_address": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    "router_addresses": [
+      "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    ],
+    "pool_address": "0x7C706586679Af2BA6D1A9fC2DA9C6aF59883fdD3",
+    "custody_address": "0x7C706586679Af2BA6D1A9fC2DA9C6aF59883fdD3",
+    "position_manager_address": "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+    "gauge_addresses": [],
+    "token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 3000,
+    "creation_block": 0,
+    "creation_transaction": "",
+    "verified": true,
+    "verification_confidence": 0.9167
+  },
+  {
+    "chain_id": 1,
+    "protocol": "uniswap",
+    "version": "v3",
+    "architecture": "concentrated_pool",
+    "factory_address": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    "router_addresses": [
+      "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    ],
+    "pool_address": "0x00Ed26e794b949E18B142F9108429b74CE08aC99",
+    "custody_address": "0x00Ed26e794b949E18B142F9108429b74CE08aC99",
+    "position_manager_address": "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+    "gauge_addresses": [],
+    "token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 10000,
+    "creation_block": 0,
+    "creation_transaction": "",
+    "verified": true,
+    "verification_confidence": 0.9167
+  },
+  {
+    "chain_id": 1,
+    "protocol": "uniswap",
+    "version": "v3",
+    "architecture": "concentrated_pool",
+    "factory_address": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    "router_addresses": [
+      "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    ],
+    "pool_address": "0x95b5Dc7efdc7b9CB5A1254dF176Bb526Ad1B7C72",
+    "custody_address": "0x95b5Dc7efdc7b9CB5A1254dF176Bb526Ad1B7C72",
+    "position_manager_address": "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+    "gauge_addresses": [],
+    "token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 100,
+    "creation_block": 0,
+    "creation_transaction": "",
+    "verified": true,
+    "verification_confidence": 0.9167
+  },
+  {
+    "chain_id": 1,
+    "protocol": "uniswap",
+    "version": "v3",
+    "architecture": "concentrated_pool",
+    "factory_address": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    "router_addresses": [
+      "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    ],
+    "pool_address": "0x14167b77c5bc79C16bb4493830B2fbb74f503665",
+    "custody_address": "0x14167b77c5bc79C16bb4493830B2fbb74f503665",
+    "position_manager_address": "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+    "gauge_addresses": [],
+    "token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 3000,
+    "creation_block": 0,
+    "creation_transaction": "",
+    "verified": true,
+    "verification_confidence": 0.9167
+  },
+  {
+    "chain_id": 1,
+    "protocol": "uniswap",
+    "version": "v3",
+    "architecture": "concentrated_pool",
+    "factory_address": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    "router_addresses": [
+      "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    ],
+    "pool_address": "0xa1532d04697cCB522E4EFC8FBa5daa75A412f7b8",
+    "custody_address": "0xa1532d04697cCB522E4EFC8FBa5daa75A412f7b8",
+    "position_manager_address": "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+    "gauge_addresses": [],
+    "token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "token1": "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C",
+    "fee": 10000,
+    "creation_block": 0,
+    "creation_transaction": "",
+    "verified": true,
+    "verification_confidence": 0.9167
+  }
+]
