@@ -1,0 +1,48 @@
+{
+  "final_score": 0.0,
+  "risk_level": "LOW",
+  "raw_score": 0.0,
+  "evidence_confidence": 0.5,
+  "migration_adjusted": false,
+  "migration_note": "",
+  "features": {
+    "pool_concentration": {
+      "value": 0,
+      "weight": 0.15,
+      "description": "Main pool holds 0.00% of total DEX liquidity.",
+      "raw_data": 0
+    },
+    "lp_concentration": {
+      "value": 0.0,
+      "weight": 0.15,
+      "description": "Largest LP holds 0.00% of pool shares.",
+      "raw_data": 0
+    },
+    "withdrawal_severity": {
+      "value": 0,
+      "weight": 0.2,
+      "description": "Liquidity removed before crash is 0.00% of pre-event TVL.",
+      "raw_data": 0
+    },
+    "temporal_proximity": {
+      "value": 0.0,
+      "weight": 0.15,
+      "description": "No incident block or no withdrawals to evaluate."
+    },
+    "role_sensitivity": {
+      "value": 0.0,
+      "weight": 0.15,
+      "description": "Deployer unknown \u2014 cannot assess role sensitivity."
+    },
+    "market_impact": {
+      "value": 0.0,
+      "weight": 0.15,
+      "description": "No timeline data or incident block."
+    },
+    "combined_activity": {
+      "value": 0.0,
+      "weight": 0.05,
+      "description": "Suspicious activity: 0 withdrawals."
+    }
+  }
+}

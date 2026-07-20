@@ -1,0 +1,209 @@
+[
+  {
+    "address": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
+    "label": "Factory (uniswap)_v2",
+    "category": "protocol_deployment",
+    "confidence": 1.0,
+    "evidence": [
+      "Whitelisted protocol factory"
+    ]
+  },
+  {
+    "address": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
+    "label": "Uniswap V2 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0xA0b86991/0xC02aaA39"
+    ]
+  },
+  {
+    "address": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+    "label": "Router (uniswap_v2)",
+    "category": "router",
+    "confidence": 1.0,
+    "evidence": [
+      "Protocol router for swaps"
+    ]
+  },
+  {
+    "address": "0x3041CbD36888bECc7bbCBc0045E3B1f144466f5f",
+    "label": "Uniswap V2 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0xA0b86991/0xdAC17F95"
+    ]
+  },
+  {
+    "address": "0xAE461cA67B15dc8dc81CE7615e0320dA1A9aB8D5",
+    "label": "Uniswap V2 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0x6B175474/0xA0b86991"
+    ]
+  },
+  {
+    "address": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    "label": "Factory (uniswap)_v3",
+    "category": "protocol_deployment",
+    "confidence": 1.0,
+    "evidence": [
+      "Whitelisted protocol factory"
+    ]
+  },
+  {
+    "address": "0xE0554a476A092703abdB3Ef35c80e0D76d32939F",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0xA0b86991/0xC02aaA39"
+    ]
+  },
+  {
+    "address": "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+    "label": "PositionManager (uniswap_v3)",
+    "category": "position_manager",
+    "confidence": 1.0,
+    "evidence": [
+      "Manages LP position NFTs"
+    ]
+  },
+  {
+    "address": "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+    "label": "Router (uniswap_v3)",
+    "category": "router",
+    "confidence": 1.0,
+    "evidence": [
+      "Protocol router for swaps"
+    ]
+  },
+  {
+    "address": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0xA0b86991/0xC02aaA39"
+    ]
+  },
+  {
+    "address": "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0xA0b86991/0xC02aaA39"
+    ]
+  },
+  {
+    "address": "0x7BeA39867e4169DBe237d55C8242a8f2fcDcc387",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0xA0b86991/0xC02aaA39"
+    ]
+  },
+  {
+    "address": "0x3416cF6C708Da44DB2624D63ea0AAef7113527C6",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0xA0b86991/0xdAC17F95"
+    ]
+  },
+  {
+    "address": "0x7858E59e0C01EA06Df3aF3D20aC7B0003275D4Bf",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0xA0b86991/0xdAC17F95"
+    ]
+  },
+  {
+    "address": "0xEe4Cf3b78A74aFfa38C6a926282bCd8B5952818d",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0xA0b86991/0xdAC17F95"
+    ]
+  },
+  {
+    "address": "0xbb256c2F1B677e27118b0345FD2b3894D2E6D487",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0xA0b86991/0xdAC17F95"
+    ]
+  },
+  {
+    "address": "0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0x6B175474/0xA0b86991"
+    ]
+  },
+  {
+    "address": "0x6c6Bc977E13Df9b0de53b251522280BB72383700",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0x6B175474/0xA0b86991"
+    ]
+  },
+  {
+    "address": "0xa63b490aA077f541c9d64bFc1Cc0db2a752157b5",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0x6B175474/0xA0b86991"
+    ]
+  },
+  {
+    "address": "0x6958686b6348c3D6d5f2dCA3106A5C09C156873a",
+    "label": "Uniswap V3 Pool",
+    "category": "pool",
+    "confidence": 1.0,
+    "evidence": [
+      "Verified pool for token pair 0x6B175474/0xA0b86991"
+    ]
+  },
+  {
+    "address": "0x0000000000000000000000000000000000000000",
+    "label": "Burn Address",
+    "category": "burn",
+    "confidence": 1.0,
+    "evidence": [
+      "Standard burn/destroy address"
+    ]
+  },
+  {
+    "address": "0x000000000000000000000000000000000000dead",
+    "label": "Burn Address",
+    "category": "burn",
+    "confidence": 1.0,
+    "evidence": [
+      "Standard burn/destroy address"
+    ]
+  },
+  {
+    "address": "0x000000000000000000000000000000000000dEaD",
+    "label": "Burn Address",
+    "category": "burn",
+    "confidence": 1.0,
+    "evidence": [
+      "Standard burn/destroy address"
+    ]
+  }
+]
