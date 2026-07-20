@@ -15,11 +15,13 @@ from .log_utils import dedupe_pools
 from .base import PoolDiscoveryAdapter
 from .uniswap_v2 import UniswapV2Adapter
 from .uniswap_v3 import UniswapV3Adapter
+from .uniswap_v4 import UniswapV4Adapter
 
 
 _ADAPTER_MAP: dict[str, type[PoolDiscoveryAdapter]] = {
     "UniswapV2Adapter": UniswapV2Adapter,
     "UniswapV3Adapter": UniswapV3Adapter,
+    "UniswapV4Adapter": UniswapV4Adapter,
 }
 
 

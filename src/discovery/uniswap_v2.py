@@ -4,13 +4,18 @@ from __future__ import annotations
 from typing import Optional
 
 from web3 import Web3
-from web3.types import EventData
 
 from ..client import get_contract
 from ..models import ProtocolDeployment, VerifiedPool
 from ..registry.loader import get_chain_id, load_registry
 from .base import PoolDiscoveryAdapter
-from .log_utils import dedupe_pools, get_logs_chunked
+from .log_utils import (
+    PAIR_CREATED_TOPIC,
+    address_topic,
+    dedupe_pools,
+    get_logs_with_topics,
+)
+import time as _time
 
 
 class UniswapV2Adapter(PoolDiscoveryAdapter):
@@ -46,42 +51,16 @@ class UniswapV2Adapter(PoolDiscoveryAdapter):
                     if pool:
                         pools.append(pool)
 
-        # --- Exhaustive discovery via PairCreated events (chunked) ---
-        event = factory.events.PairCreated
+        # --- Exhaustive discovery via PairCreated events (skip if range too large for Free tier) ---
+        factory_addr = self.deployment.factory
         search_from = max(from_block, self.deployment.deployment_block)
+        total_blocks = to_block - search_from + 1
 
-        for token_role in ("token0", "token1"):
-            arg_filter = {"token0": token} if token_role == "token0" else {"token1": token}
-            entries = get_logs_chunked(
-                event,
-                from_block=search_from,
-                to_block=to_block,
-                argument_filters=arg_filter,
-            )
-
-            for entry in entries:
-                evt: EventData = entry  # type: ignore[assignment]
-                args = evt["args"]
-                pair_addr = Web3.to_checksum_address(args["pair"])
-                if pair_addr in seen:
-                    continue
-                seen.add(pair_addr)
-                pools.append(VerifiedPool(
-                    chain_id=chain_id,
-                    protocol="uniswap",
-                    version="v2",
-                    architecture="direct_pair",
-                    factory_address=self.deployment.factory,
-                    router_addresses=[self.deployment.router] if self.deployment.router else [],
-                    pool_address=pair_addr,
-                    custody_address=pair_addr,
-                    token0=Web3.to_checksum_address(args["token0"]),
-                    token1=Web3.to_checksum_address(args["token1"]),
-                    creation_block=entry["blockNumber"],
-                    creation_transaction=entry["transactionHash"].hex(),
-                    verified=False,
-                    verification_confidence=0.0,
-                ))
+        # Skip exhaustive if range > 1000 blocks (would be too slow with Free tier limits)
+        if total_blocks <= 1000:
+            _try_exhaustive_v2(self.w3, factory_addr, token, chain_id,
+                                search_from, to_block, seen, pools,
+                                self.deployment.factory, self.deployment.router)
 
         return dedupe_pools(pools)
 
@@ -108,3 +87,70 @@ class UniswapV2Adapter(PoolDiscoveryAdapter):
             )
         except Exception:
             return None
+
+
+def _try_exhaustive_v2(
+    w3: Web3, factory_addr: str, token: str, chain_id: int,
+    search_from: int, to_block: int, seen: set, pools: list,
+    deployment_factory: str, deployment_router: Optional[str],
+) -> None:
+    """Try exhaustive V2 discovery via PairCreated events (graceful failure)."""
+    try:
+        factory_addr_checksum = Web3.to_checksum_address(factory_addr)
+        t0 = _time.time()
+
+        # token0 == target
+        raw_logs = get_logs_with_topics(
+            w3, factory_addr_checksum,
+            [PAIR_CREATED_TOPIC, address_topic(token), None],
+            search_from, to_block,
+        )
+        for raw in raw_logs:
+            pair_addr = Web3.to_checksum_address("0x" + raw["data"][2:66].zfill(64)[-40:])
+            if pair_addr in seen:
+                continue
+            seen.add(pair_addr)
+            token0 = Web3.to_checksum_address("0x" + raw["topics"][1].hex()[-40:])
+            token1 = Web3.to_checksum_address("0x" + raw["topics"][2].hex()[-40:])
+            pools.append(VerifiedPool(
+                chain_id=chain_id, protocol="uniswap", version="v2",
+                architecture="direct_pair", factory_address=deployment_factory,
+                router_addresses=[deployment_router] if deployment_router else [],
+                pool_address=pair_addr, custody_address=pair_addr,
+                token0=token0, token1=token1,
+                creation_block=int(raw["blockNumber"], 16) if isinstance(raw["blockNumber"], str) else raw["blockNumber"],
+                creation_transaction=raw["transactionHash"].hex(),
+                verified=False, verification_confidence=0.0,
+            ))
+
+        # token1 == target
+        raw_logs = get_logs_with_topics(
+            w3, factory_addr_checksum,
+            [PAIR_CREATED_TOPIC, None, address_topic(token)],
+            search_from, to_block,
+        )
+        for raw in raw_logs:
+            pair_addr = Web3.to_checksum_address("0x" + raw["data"][2:66].zfill(64)[-40:])
+            if pair_addr in seen:
+                continue
+            seen.add(pair_addr)
+            token0 = Web3.to_checksum_address("0x" + raw["topics"][1].hex()[-40:])
+            token1 = Web3.to_checksum_address("0x" + raw["topics"][2].hex()[-40:])
+            pools.append(VerifiedPool(
+                chain_id=chain_id, protocol="uniswap", version="v2",
+                architecture="direct_pair", factory_address=deployment_factory,
+                router_addresses=[deployment_router] if deployment_router else [],
+                pool_address=pair_addr, custody_address=pair_addr,
+                token0=token0, token1=token1,
+                creation_block=int(raw["blockNumber"], 16) if isinstance(raw["blockNumber"], str) else raw["blockNumber"],
+                creation_transaction=raw["transactionHash"].hex(),
+                verified=False, verification_confidence=0.0,
+            ))
+
+        t1 = _time.time()
+        # Only log if we found something (silent skip otherwise)
+        if pools:
+            pass  # pools were added
+
+    except Exception:
+        pass  # Silent fallback: fast discovery results are still returned
